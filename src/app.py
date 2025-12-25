@@ -1,13 +1,41 @@
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from db import database_manager as db
 
-# Initialize the Flask application
 app = Flask(__name__)
-
 # Enable CORS (Cross-Origin Resource Sharing)
-# This allows our React frontend to communicate with this Python backend
 CORS(app)
+
+# Tüm coinlerin detaylı verisini dönen endpoint
+@app.route('/api/all-coins', methods=['GET'])
+def get_all_coins():
+    """
+    Tüm coinlerin detaylı verisini MongoDB'den döner.
+    """
+    try:
+        client = db.client
+        collection = client["crypto_project_db"]["all_coins_details"]
+        coins = list(collection.find({}, {"_id": 0}))
+        return jsonify(coins)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Initialize the Flask application
+
+@app.route('/api/popular-coins', methods=['GET'])
+def get_popular_coins():
+    """
+    Popüler coinlerin özet verisini MongoDB'den döner.
+    """
+    try:
+        client = db.client
+        collection = client["crypto_project_db"]["popular_coins"]
+        coins = list(collection.find({}, {"_id": 0}))
+        return jsonify(coins)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/')
 def home():
