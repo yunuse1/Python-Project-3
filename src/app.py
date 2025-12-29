@@ -85,6 +85,46 @@ def get_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+def fetch_market_coins_list():
+    """
+    Returns list of coin detail docs that have market_data entries.
+    This is used to power the frontend market page so coins without market data are hidden.
+    """
+    try:
+        client = db.client
+        market_coll = client["crypto_project_db"]["market_data"]
+        details_coll = client["crypto_project_db"]["all_coins_details"]
+
+        # Distinct coin_ids present in market_data (could be 'BTCUSDT' or 'bitcoin')
+        market_ids = set(market_coll.distinct('coin_id'))
+
+        # Fetch all coin details and filter in Python for flexible matching
+        all_details = list(details_coll.find({}, {"_id": 0}))
+        result = []
+        for d in all_details:
+            coin_id = d.get('id')
+            symbol = (d.get('symbol') or '').upper()
+
+            # direct id match or symbol-based matches
+            candidates = {str(coin_id), symbol, symbol + 'USDT', symbol + 'BUSD', symbol + 'USDC'}
+            if market_ids.intersection(candidates):
+                result.append(d)
+
+        return result
+    except Exception:
+        return []
+
+
+@app.route('/api/market-coins', methods=['GET'])
+def get_market_coins():
+    """Endpoint that returns only coins which have market data available."""
+    try:
+        coins = fetch_market_coins_list()
+        return jsonify(coins)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # Run the application on port 5000 in debug mode
     app.run(debug=True, port=5000)

@@ -13,8 +13,8 @@ function Home() {
   useEffect(() => {
     const fetchCoins = async () => {
       try {
-        // Backend'deki tüm coinleri çeken endpoint
-        const res = await axios.get('http://127.0.0.1:5000/api/all-coins');
+        // Backend'deki sadece market verisi olan coinleri çeken endpoint
+        const res = await axios.get('http://127.0.0.1:5000/api/market-coins');
         setCoins(res.data);
       } catch (err) {
         console.error("Veri çekilemedi:", err);

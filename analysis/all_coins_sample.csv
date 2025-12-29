@@ -1,0 +1,28 @@
+_id,id,current_price,image,last_updated,market_cap,name,price_change_percentage_24h,symbol
+694d1d81d2659e140862d7f0,1inch,0.151342,https://coin-images.coingecko.com/coins/images/13469/large/1inch-logo.jpeg?1759404663,2025-12-25 14:18:24.957,212265358.0,1INCH,1.78037,1inch
+694d1d82d2659e140862d7f1,1inch-yvault,0.161894,https://coin-images.coingecko.com/coins/images/28795/large/yv1INCH-128-0xB8C3B7A2A618C552C23B1E4701109a9E756Bab67.png?1696527773,2025-12-25 14:18:26.682,0.0,1INCH yVault,1.66344,yv1inch
+694d1d84d2659e140862d7f2,1intro,0.00030826,https://coin-images.coingecko.com/coins/images/37128/large/2lr4a7YA_400x400.jpg?1736325704,2025-12-25 14:18:28.320,88624.0,CoinChef,0.90042,chef
+694d1dc2d2659e140862d7f3,4444-token-3,1.43e-05,https://coin-images.coingecko.com/coins/images/70685/large/logo.jpg?1763102771,2025-12-25 14:19:30.380,14319.0,4444,-5.83303,4444
+694d1dc4d2659e140862d7f4,4547-token,1.334e-05,https://coin-images.coingecko.com/coins/images/51347/large/4547200x200.jpeg?1730829186,2025-12-25 14:19:32.011,13341.22,4547,-0.08154,4547
+694d1dc5d2659e140862d7f5,47th-potus,2.106e-05,https://coin-images.coingecko.com/coins/images/51009/large/TRUMP47logo_%281%29.png?1729723716,2025-12-25 14:19:33.573,21063.0,47th POTUS,,trump47
+694d1dc7d2659e140862d7f6,4chan,3.7401e-14,https://coin-images.coingecko.com/coins/images/30124/large/F_MI71-a_400x400_%281%29.jpg?1763753659,2025-12-25 14:19:35.152,2881528.0,4Chan,-1.1937,4chan
+694d1e05d2659e140862d7f7,9to5io,1.071e-05,https://coin-images.coingecko.com/coins/images/37829/large/9to5.jpg?1715670753,2025-12-25 14:20:37.758,10690.43,9to5io,,9to5
+694d1e07d2659e140862d7f8,a0x,1.383e-05,https://coin-images.coingecko.com/coins/images/67753/large/ksvx43b6wzuizd92091qlauexzm0.?1753708818,2025-12-25 14:20:39.498,1381711.0,A0x,-3.55408,a0x
+694d1e09d2659e140862d7f9,a16gems,7.95e-06,https://coin-images.coingecko.com/coins/images/51461/large/logo_coingecko.png?1731320849,2025-12-25 14:20:41.139,7949.4,a16gems,,a16g
+694d1e0ad2659e140862d7fa,a16z-ai-dog,1.815e-05,https://coin-images.coingecko.com/coins/images/51088/large/Untitled_design.png?1730019635,2025-12-25 14:20:42.776,18121.86,a16z AI Dog,,tilly
+694d1e39d2659e140862d7fb,aave-amm-unirenweth,27.68,https://coin-images.coingecko.com/coins/images/17223/large/aAmmUniRENWETH.png?1696516778,2025-12-25 14:21:29.906,0.0,Aave AMM UniRENWETH,-1.48844,aammunirenweth
+694d1e3bd2659e140862d7fc,aave-amm-unisnxweth,205.53,https://coin-images.coingecko.com/coins/images/17224/large/aAmmUniSNXWETH.png?1696516779,2025-12-25 14:21:31.889,0.0,Aave AMM UniSNXWETH,0.57906,aammunisnxweth
+694d1e3dd2659e140862d7fd,aave-amm-uniuniweth,695.47,https://coin-images.coingecko.com/coins/images/17225/large/aAmmUniUNIWETH.png?1696516780,2025-12-25 14:21:33.982,0.0,Aave AMM UniUNIWETH,0.69258,aammuniuniweth
+694d1e3fd2659e140862d7fe,aave-amm-uniusdcweth,298873029.0,https://coin-images.coingecko.com/coins/images/17219/large/aAmmUniUSDCWETH.png?1696516774,2025-12-25 14:21:35.893,0.0,Aave AMM UniUSDCWETH,-0.2259,aammuniusdcweth
+694d1e41d2659e140862d7ff,aave-amm-uniwbtcusdc,109183333088144.0,https://coin-images.coingecko.com/coins/images/17255/large/aAmmUniWBTCUSDC.png?1696516811,2025-12-25 14:21:37.870,0.0,Aave AMM UniWBTCUSDC,-0.19562,aammuniwbtcusdc
+694d1e81d2659e140862d800,aave-tusd-v1,0.999093,https://coin-images.coingecko.com/coins/images/11724/large/aTUSD.png?1696511606,2025-12-25 14:22:41.517,0.0,Aave TUSD v1,-0.08673,atusd
+694d1e82d2659e140862d801,aave-uni,5.81,https://coin-images.coingecko.com/coins/images/17247/large/aUNI_2x.png?1696516804,2025-12-25 14:22:42.972,0.0,Aave UNI,1.75953,auni
+694d1e84d2659e140862d802,aave-usdc,1.001,https://coin-images.coingecko.com/coins/images/14318/large/aUSDC.e260d492.png?1696514006,2025-12-25 14:22:44.578,0.0,Aave v2 USDC,0.00237,ausdc
+694d1e86d2659e140862d803,aave-usdc-linea,,https://coin-images.coingecko.com/coins/images/66757/large/usdc.png?1750409829,2025-12-25 14:22:46.639,,Aave USDC (Linea),,alinusdc
+694d1e88d2659e140862d804,aave-usdc-sonic,0.999589,https://coin-images.coingecko.com/coins/images/55659/large/aSonUSDC_200x200.png?1746866473,2025-12-25 14:22:48.528,16676246.0,Aave USDC (Sonic),-0.02374,asonusdc
+694d1e95d2659e140862d805,aave-v3-aave,149.94,https://coin-images.coingecko.com/coins/images/32887/large/aave.png?1699773604,2025-12-25 14:23:01.343,0.0,Aave v3 AAVE,2.33296,aaave
+694d1e97d2659e140862d806,aave-v3-ageur,1.18,https://coin-images.coingecko.com/coins/images/32925/large/eur.png?1699826217,2025-12-25 14:23:03.011,0.0,Aave v3 agEUR,-0.16106,aageur
+694d1e9cd2659e140862d807,aave-v3-arb,0.187158,https://coin-images.coingecko.com/coins/images/32912/large/arbitrum.png?1699824441,2025-12-25 14:23:08.104,0.0,Aave v3 ARB,1.50013,aarb
+694d1e9ed2659e140862d808,aave-v3-bal,0.617199,https://coin-images.coingecko.com/coins/images/32903/large/BAL_%281%29.png?1699802595,2025-12-25 14:23:10.912,0.0,Aave v3 BAL,-1.54387,abal
+694d1ea1d2659e140862d809,aave-v3-cbeth,3270.59,https://coin-images.coingecko.com/coins/images/32892/large/cbETH.png?1699789253,2025-12-25 14:23:13.602,0.0,Aave v3 cbETH,-0.27994,acbeth
+694ee2d7d2659e140862d81a,11am,0.00087333,https://coin-images.coingecko.com/coins/images/70562/large/11am-pfp.png?1762537256,2025-12-26 22:32:39.401,469638.0,11am,-3.23389,11am

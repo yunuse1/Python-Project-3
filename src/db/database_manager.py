@@ -20,8 +20,51 @@ def save_market_data(coin_id, df):
         print(f"No data found for {coin_id}.")
 
 def get_market_data(coin_id):
-    cursor = market_collection.find({"coin_id": coin_id}, {"_id": 0})
-    return pd.DataFrame(list(cursor))
+    try:
+        # Direkt eşleşme (örn. 'bitcoin' veya 'BTCUSDT' gibi)
+        cursor = market_collection.find({"coin_id": coin_id}, {"_id": 0})
+        df = pd.DataFrame(list(cursor))
+
+        # Eğer direkt kayıt yoksa, coin'in sembolünü kullanarak fallback aramaları yap
+        if df.empty:
+            details_col = db["all_coins_details"]
+            doc = details_col.find_one({"id": coin_id}, {"symbol": 1, "_id": 0})
+            candidates = []
+            if doc and doc.get("symbol"):
+                sym = doc.get("symbol").upper()
+                # Yaygın quote'ları deneyelim
+                candidates = [sym + 'USDT', sym + 'BUSD', sym + 'USDC', sym]
+
+            # İlk olarak tam eşleşmelerle ara
+            if candidates:
+                cursor2 = market_collection.find({"coin_id": {"$in": candidates}}, {"_id": 0})
+                df2 = pd.DataFrame(list(cursor2))
+                if not df2.empty:
+                    df = df2
+
+            # Hâlâ yoksa, sembolle başlayan tüm market kayıtlarını regex ile kontrol et
+            if df.empty and doc and doc.get("symbol"):
+                regex_pattern = f"^{doc.get('symbol').upper()}"
+                cursor3 = market_collection.find({"coin_id": {"$regex": regex_pattern}}, {"_id": 0})
+                df3 = pd.DataFrame(list(cursor3))
+                if not df3.empty:
+                    df = df3
+
+            # Son çare: coin_id'yi küçük/büyük harf duyarsız arama ile dene
+            if df.empty:
+                cursor4 = market_collection.find({"coin_id": {"$regex": coin_id, "$options": "i"}}, {"_id": 0})
+                df4 = pd.DataFrame(list(cursor4))
+                if not df4.empty:
+                    df = df4
+
+        # Eğer timestamp varsa DateTime'ye çevirip sıralayalım
+        if not df.empty and "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df = df.sort_values("timestamp")
+
+        return df
+    except Exception:
+        return pd.DataFrame()
 
 def initialize_database():
     users_collection.delete_many({})

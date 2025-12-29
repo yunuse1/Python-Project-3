@@ -11,7 +11,8 @@ function Compare() {
   const [allCoins, setAllCoins] = useState([]); 
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/all-coins').then(res => setAllCoins(res.data));
+    // Use market-only coins so compare select lists only coins with market data
+    axios.get('http://127.0.0.1:5000/api/market-coins').then(res => setAllCoins(res.data));
   }, []);
 
   useEffect(() => {
