@@ -13,7 +13,14 @@ function CoinDetail() {
     const fetchData = async () => {
       try {
         const res = await axios.get(`http://127.0.0.1:5000/api/market/${id}`);
-        setChartData(res.data);
+        const normalize = (r) => {
+          if (Array.isArray(r)) return r;
+          if (r && Array.isArray(r.data)) return r.data;
+          // Some backends return { error: ..., data: [] }
+          if (r && Array.isArray(r?.data?.data)) return r.data.data;
+          return [];
+        };
+        setChartData(normalize(res.data));
       } catch (err) {
         console.error(err);
       } finally {
@@ -40,7 +47,10 @@ function CoinDetail() {
                 <div className="h-full flex items-center justify-center">Yükleniyor...</div>
             ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
+                {(!chartData || chartData.length === 0) ? (
+                  <div className="h-full flex items-center justify-center text-slate-400">Grafik verisi yok</div>
+                ) : (
+                  <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -51,8 +61,9 @@ function CoinDetail() {
                         <XAxis dataKey="timestamp" tickFormatter={formatDate} stroke="#94a3b8" />
                         <YAxis domain={['auto', 'auto']} stroke="#94a3b8" tickFormatter={(v) => `$${v}`} />
                         <Tooltip contentStyle={{backgroundColor: '#1e293b', borderColor: '#334155'}} />
-                        <Area type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorPrice)" />
-                    </AreaChart>
+                          <Area type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorPrice)" />
+                        </AreaChart>
+                      )}
                 </ResponsiveContainer>
             )}
         </div>

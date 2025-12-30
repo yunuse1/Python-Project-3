@@ -20,20 +20,35 @@ function Compare() {
         try {
             const res1 = await axios.get(`http://127.0.0.1:5000/api/market/${coin1}`);
             const res2 = await axios.get(`http://127.0.0.1:5000/api/market/${coin2}`);
-            setData1(res1.data);
-            setData2(res2.data);
+        // API may return an object with { error, data: [] } or a raw array.
+        const normalize = (r) => {
+          if (Array.isArray(r)) return r;
+          if (r && Array.isArray(r.data)) return r.data;
+          return [];
+        };
+
+        setData1(normalize(res1.data));
+        setData2(normalize(res2.data));
         } catch (e) {
             console.error(e);
+        setData1([]);
+        setData2([]);
         }
     };
     fetchCompareData();
   }, [coin1, coin2]);
 
-  const mergedData = data1.map((item, index) => ({
-      timestamp: item.timestamp,
-      price1: item.price,
-      price2: data2[index]?.price || 0
-  }));
+    // Merge two timeseries by index — handle differing lengths safely
+    const maxLen = Math.max(data1.length, data2.length);
+    const mergedData = Array.from({ length: maxLen }).map((_, index) => {
+      const a = data1[index] || {};
+      const b = data2[index] || {};
+      return {
+        timestamp: a.timestamp || b.timestamp || null,
+        price1: a.price || 0,
+        price2: b.price || 0
+      };
+    }).filter(d => d.timestamp !== null);
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('tr-TR', {month:'short', day:'numeric'});
 

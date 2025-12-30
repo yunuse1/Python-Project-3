@@ -1,5 +1,8 @@
 
 from flask import Flask, jsonify
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+import pandas as pd
 from flask_cors import CORS
 from db import database_manager as db
 
@@ -63,7 +66,48 @@ def get_coin_data(coin_id):
             
         # Convert Pandas DataFrame to a list of dictionaries (JSON compatible)
         result = df.to_dict(orient="records")
-        return jsonify(result)
+
+        # Sanitize values: convert NaN/NaT to None (JSON null) and
+        # normalize timestamps to ISO 8601 (UTC, ending with Z).
+        sanitized = []
+        for rec in result:
+            out = {}
+            for k, v in rec.items():
+                # pandas/numpy NA handling
+                try:
+                    if pd.isna(v):
+                        out[k] = None
+                        continue
+                except Exception:
+                    pass
+
+                # Normalize timestamp formats (datetime or RFC-2822 strings)
+                if k == 'timestamp':
+                    if isinstance(v, datetime):
+                        dt = v
+                        if dt.tzinfo is None:
+                            out[k] = dt.replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
+                        else:
+                            out[k] = dt.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+                        continue
+                    if isinstance(v, str):
+                        try:
+                            dt = parsedate_to_datetime(v)
+                            if dt.tzinfo is None:
+                                out[k] = dt.replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
+                            else:
+                                out[k] = dt.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+                            continue
+                        except Exception:
+                            # keep original string if parsing fails
+                            out[k] = v
+                            continue
+
+                out[k] = v
+
+            sanitized.append(out)
+
+        return jsonify(sanitized)
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
