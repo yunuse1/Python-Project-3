@@ -9,6 +9,7 @@ function Compare() {
   const [data1, setData1] = useState([]);
   const [data2, setData2] = useState([]);
   const [allCoins, setAllCoins] = useState([]); 
+  const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
     // Use market-only coins so compare select lists only coins with market data
@@ -36,6 +37,18 @@ function Compare() {
         }
     };
     fetchCompareData();
+
+    // fetch indexed analysis for both coins
+    const fetchAnalysis = async () => {
+      try {
+        const r = await axios.get(`http://127.0.0.1:5000/api/market/indexed?coins=${coin1},${coin2}`);
+        setAnalysis(r.data || null);
+      } catch (e) {
+        console.error('analysis fetch error', e);
+        setAnalysis(null);
+      }
+    };
+    fetchAnalysis();
   }, [coin1, coin2]);
 
     // Merge two timeseries by index — handle differing lengths safely
@@ -83,6 +96,14 @@ function Compare() {
               </select>
           </div>
       </div>
+
+      {/* Analysis summary */}
+      {analysis && analysis.ranking && (
+        <div className="max-w-3xl mx-auto mb-6 text-center text-slate-300">
+          <strong>{analysis.ranking[0].coin.toUpperCase()}</strong> bu periyot içinde en iyi performansı gösteriyor (%{analysis.ranking[0].percent_change.toFixed(2)}).{' '}
+          <span className="text-slate-500">{analysis.ranking.length > 1 ? `${analysis.ranking[1].coin.toUpperCase()} ise %{analysis.ranking[1].percent_change.toFixed(2)}` : ''}</span>
+        </div>
+      )}
 
       <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl h-[500px]">
           <ResponsiveContainer width="100%" height="100%">

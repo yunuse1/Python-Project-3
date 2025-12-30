@@ -1,5 +1,6 @@
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+import traceback
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import pandas as pd
@@ -22,7 +23,9 @@ def get_all_coins():
         coins = list(collection.find({}, {"_id": 0}))
         return jsonify(coins)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e), "traceback": tb}), 500
 
 
 # Initialize the Flask application
@@ -166,6 +169,116 @@ def get_market_coins():
     try:
         coins = fetch_market_coins_list()
         return jsonify(coins)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/market/indexed', methods=['GET'])
+def get_indexed_series():
+    """
+    Returns indexed series (base = 100 at base_date) and percent-change summaries for given coins.
+    Query params:
+      - coins: comma-separated list of coin ids (e.g. bitcoin,ethereum)
+      - base_date: optional ISO or RFC date string; if omitted defaults to 30 days before latest available point per coin
+    """
+    try:
+        coins_param = request.args.get('coins', '')
+        if not coins_param:
+            return jsonify({"error": "Missing 'coins' query parameter"}), 400
+
+        coins = [c.strip() for c in coins_param.split(',') if c.strip()]
+        base_date_raw = request.args.get('base_date')
+
+        results = {}
+        ranking = []
+
+        for coin in coins:
+            df = db.get_market_data(coin)
+
+                # Defensive: accept alternative price column names and coerce types
+            if df.empty:
+                results[coin] = {"series": [], "summary": None, "debug": {"raw_count": 0, "valid_count": 0}}
+                continue
+
+            df = df.copy()
+
+            # normalize timestamp column (make tz-aware UTC)
+            if 'timestamp' in df.columns:
+                df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce', utc=True)
+            else:
+                df['timestamp'] = pd.NaT
+
+            # normalize price column: accept 'price', 'close', 'c'
+            if 'price' not in df.columns:
+                if 'close' in df.columns:
+                    df['price'] = df['close']
+                elif 'c' in df.columns:
+                    df['price'] = df['c']
+
+            # coerce price to numeric
+            if 'price' in df.columns:
+                df['price'] = pd.to_numeric(df['price'], errors='coerce')
+
+            df = df.sort_values('timestamp')
+
+            # determine base_date for this coin
+            if base_date_raw:
+                try:
+                    bd = parsedate_to_datetime(base_date_raw)
+                    bd = bd.astimezone(timezone.utc) if bd.tzinfo else bd.replace(tzinfo=timezone.utc)
+                except Exception:
+                    # fallback: try pandas parser
+                    bd = pd.to_datetime(base_date_raw, utc=True)
+            else:
+                # default base = 30 days before latest available
+                latest = df['timestamp'].max()
+                bd = latest - pd.Timedelta(days=30)
+
+            # find the first price at or after base_date; fallback to earliest
+            df_valid = df.dropna(subset=['price'])
+            raw_count = len(df)
+            valid_count = len(df_valid)
+            if df_valid.empty:
+                results[coin] = {"series": [], "summary": None, "debug": {"raw_count": raw_count, "valid_count": valid_count}}
+                continue
+
+            base_row = df_valid[df_valid['timestamp'] >= bd]
+            if not base_row.empty:
+                base_price = float(base_row.iloc[0]['price'])
+                base_ts = pd.to_datetime(base_row.iloc[0]['timestamp'], utc=True)
+            else:
+                base_price = float(df_valid.iloc[0]['price'])
+                base_ts = pd.to_datetime(df_valid.iloc[0]['timestamp'], utc=True)
+
+            # compute indexed series
+            series = []
+            for _, row in df_valid.iterrows():
+                try:
+                    price = float(row['price'])
+                except Exception:
+                    continue
+                indexed = price / base_price * 100.0
+                ts = row['timestamp']
+                ts_iso = pd.to_datetime(ts, utc=True).isoformat().replace('+00:00', 'Z')
+                series.append({"timestamp": ts_iso, "indexed": indexed, "price": price})
+
+            latest_price = float(df_valid.iloc[-1]['price'])
+            pct_change = (latest_price / base_price - 1.0) * 100.0
+
+            summary = {
+                "base_date": pd.to_datetime(base_ts, utc=True).isoformat().replace('+00:00', 'Z'),
+                "base_price": base_price,
+                "latest_price": latest_price,
+                "percent_change": pct_change
+            }
+
+            results[coin] = {"series": series, "summary": summary, "debug": {"raw_count": raw_count, "valid_count": valid_count}}
+            ranking.append({"coin": coin, "percent_change": pct_change})
+
+        # sort ranking descending
+        ranking = sorted(ranking, key=lambda x: x['percent_change'], reverse=True)
+
+        return jsonify({"coins": results, "ranking": ranking})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

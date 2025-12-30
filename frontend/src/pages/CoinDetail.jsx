@@ -7,6 +7,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 function CoinDetail() {
   const { id } = useParams();
   const [chartData, setChartData] = useState([]);
+  const [indexedSummary, setIndexedSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +29,22 @@ function CoinDetail() {
       }
     };
     fetchData();
+
+      // fetch indexed series (default base: last 30 days)
+      const fetchIndexed = async () => {
+        try {
+          const r = await axios.get(`http://127.0.0.1:5000/api/market/indexed?coins=${id}`);
+          if (r && r.data && r.data.coins && r.data.coins[id]) {
+            setIndexedSummary(r.data.coins[id].summary || null);
+          } else {
+            setIndexedSummary(null);
+          }
+        } catch (e) {
+          console.error('Indexed fetch error', e);
+          setIndexedSummary(null);
+        }
+      };
+      fetchIndexed();
   }, [id]);
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('tr-TR', {month:'short', day:'numeric'});
@@ -67,6 +84,16 @@ function CoinDetail() {
                 </ResponsiveContainer>
             )}
         </div>
+
+          {/* Indexed / Benchmark chart */}
+          {indexedSummary && (
+            <div className="mt-8 bg-slate-900/50 rounded-2xl p-4 border border-slate-700/30">
+              <h3 className="text-lg font-semibold mb-3">Endeks (Seçilen başlangıç = 100)</h3>
+              <div className="mb-3 text-sm text-slate-300">
+                Başlangıç tarihi: {new Date(indexedSummary.base_date).toLocaleDateString('tr-TR')} — Değişim: {indexedSummary.percent_change !== undefined ? indexedSummary.percent_change.toFixed(2) + '%' : '—'}
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );
