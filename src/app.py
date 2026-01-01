@@ -7,12 +7,17 @@ import numpy as np
 from flask_cors import CORS
 from db import database_manager as db
 from analysis_engine import CryptoAnalysisEngine
+import time
 
 app = Flask(__name__)
 CORS(app)
 
 # Analysis engine instance
 analysis_engine = CryptoAnalysisEngine()
+
+# Simple in-memory cache for market-coins list
+_market_coins_cache = {'data': None, 'timestamp': 0}
+CACHE_TTL = 300  # 5 minutes
 
 
 @app.route('/api/all-coins', methods=['GET'])
@@ -225,13 +230,23 @@ def fetch_market_coins_list():
 
 @app.route('/api/market-coins', methods=['GET'])
 def get_market_coins():
-    """Endpoint that returns only coins which have market data available."""
+    """Endpoint that returns only coins which have market data available. Uses caching."""
+    global _market_coins_cache
     try:
+        now = time.time()
+        # Return cached data if still valid
+        if _market_coins_cache['data'] is not None and (now - _market_coins_cache['timestamp']) < CACHE_TTL:
+            return jsonify(_market_coins_cache['data'])
+        
+        # Fetch fresh data
         coins = fetch_market_coins_list()
+        
+        # Update cache
+        _market_coins_cache = {'data': coins, 'timestamp': now}
+        
         return jsonify(coins)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/api/market/indexed', methods=['GET'])
 def get_indexed_series():

@@ -10,6 +10,13 @@ db = client["crypto_project_db"]
 users_collection = db["users"]
 market_collection = db["market_data"]
 
+# Create indexes for faster queries (idempotent - safe to run multiple times)
+try:
+    market_collection.create_index([("coin_id", 1), ("timestamp", -1)])
+    market_collection.create_index("coin_id")
+except Exception as e:
+    print(f"Index creation warning: {e}")
+
 def save_market_data(coin_id, df):
     market_collection.delete_many({"coin_id": coin_id})
     
