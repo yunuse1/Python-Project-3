@@ -150,7 +150,24 @@ COIN_SYMBOLS = {
     'loopring': 'LRC', 'civic': 'CVC', 'dock': 'DOCK', 'wazirx': 'WRX',
     'trust-wallet-token': 'TWT', 'fetch-ai': 'FET', 'certik': 'CTK',
     'optimism': 'OP', 'arbitrum': 'ARB', 'sui': 'SUI', 'celestia': 'TIA',
-    'immutable-x': 'IMX', 'lido-dao': 'LDO', 'gala': 'GALA', 'ordi': 'ORDI'
+    'immutable-x': 'IMX', 'lido-dao': 'LDO', 'gala': 'GALA', 'ordi': 'ORDI',
+    # Fan tokens and others
+    'bakerytoken': 'BAKE', 'bella-protocol': 'BEL', 'akropolis': 'AKRO',
+    'alien-worlds': 'TLM', 'myneighboralice': 'ALICE', 'dego-finance': 'DEGO',
+    'dodo': 'DODO', 'wing-finance': 'WING', 'linear': 'LINA', 'ramp': 'RAMP',
+    'coin98': 'C98', 'safe-pal': 'SFP', 'litentry': 'LIT', 'pundi-x': 'PUNDIX',
+    'reef': 'REEF', 'swipe': 'SXP', 'bitshares': 'BTS', 'venus': 'XVS',
+    'tomochain': 'TOMO', 'perlin': 'PERL', 'ampleforth-governance-token': 'FORTH',
+    'constitutiondao': 'PEOPLE', 'ethereum-name-service': 'ENS', 'api3': 'API3',
+    'biconomy': 'BICO', 'jasmycoin': 'JASMY', 'spell-token': 'SPELL',
+    'stargate-finance': 'STG', 'gmx': 'GMX', 'convex-finance': 'CVX',
+    'highstreet': 'HIGH', 'voxels': 'VOXEL', 'sei': 'SEI',
+    # Fan tokens (use CHZ as base since they're on Chiliz)
+    'paris-saint-germain-fan-token': 'PSG', 'juventus-fan-token': 'JUV',
+    'fc-barcelona-fan-token': 'BAR', 'atletico-madrid-fan-token': 'ATM',
+    'as-roma-fan-token': 'ASR', 'og-fan-token': 'OG', 'manchester-city-fan-token': 'CITY',
+    'ac-milan-fan-token': 'ACM', 'santos-fc-fan-token': 'SANTOS', 'porto': 'PORTO',
+    'ss-lazio-fan-token': 'LAZIO', 'galatasaray-fan-token': 'GAL'
 }
 
 def fetch_market_coins_list():

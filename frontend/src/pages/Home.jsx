@@ -68,7 +68,15 @@ function Home() {
             {currentCoins.map((coin) => (
               <tr key={coin.id} className="hover:bg-slate-700 transition-colors">
                 <td className="p-4 font-semibold flex items-center gap-3">
-                  <img src={coin.image} alt={coin.name} className="w-8 h-8 rounded-full" onError={(e) => e.target.style.display='none'}/>
+                  <img 
+                    src={coin.image} 
+                    alt={coin.name} 
+                    className="w-8 h-8 rounded-full bg-slate-600" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `https://ui-avatars.com/api/?name=${coin.symbol}&background=random&color=fff&size=64&bold=true`;
+                    }}
+                  />
                   {coin.name}
                 </td>
                 <td className="p-4 text-slate-400 uppercase">{coin.symbol}</td>
