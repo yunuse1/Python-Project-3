@@ -605,6 +605,24 @@ def get_coin_anomalies(coin_id):
         print(tb)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/forecast/<coin_id>', methods=['GET'])
+def get_coin_forecast(coin_id):
+    try:
+        # MongoDB'den geçmiş veriyi çek
+        df = db.get_market_data(coin_id)
+        if df.empty:
+            return jsonify({"error": "Veri bulunamadı"}), 404
+        
+        # Tahmini hesapla
+        forecast = analysis_engine.predict_future_price(df)
+        return jsonify({
+            "coin": coin_id,
+            "current_price": float(df.iloc[-1]['price']),
+            "forecast": forecast
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/exchange-overview', methods=['GET'])
 def get_exchange_overview():
     try:

@@ -3,7 +3,7 @@ Crypto Analysis Engine - Teknik analiz ve risk metrikleri hesaplama modülü
 """
 import pandas as pd
 import numpy as np
-
+from sklearn.linear_model import LinearRegression
 
 class CryptoAnalysisEngine:
     """
@@ -619,3 +619,24 @@ class CryptoAnalysisEngine:
             "most_popular_coin": popular.upper(),
             "total_investors": len(all_users)
         }
+    def predict_future_price(self, df):
+        """Lineer Regresyon ile 7 günlük tahmin yapar."""
+        from sklearn.linear_model import LinearRegression
+        import numpy as np
+        
+        if df.empty or len(df) < 5: # Test için sınırı 5'e düşürdüm
+            return []
+
+        df = df.copy()
+        df['timestamp_num'] = np.arange(len(df))
+        X = df[['timestamp_num']].values
+        y = df['price'].values
+
+        model = LinearRegression()
+        model.fit(X, y)
+
+        last_idx = len(df)
+        future_steps = np.arange(last_idx, last_idx + 7).reshape(-1, 1)
+        preds = model.predict(future_steps)
+
+        return [{"day": f"+{i+1} Gün", "predicted_price": round(float(p), 4)} for i, p in enumerate(preds)]
