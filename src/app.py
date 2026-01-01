@@ -131,31 +131,46 @@ def get_users():
 
 def fetch_market_coins_list():
     """
-    Returns list of coin detail docs that have market_data entries.
-    This is used to power the frontend market page so coins without market data are hidden.
+    Returns list of coins that have market_data entries.
+    This is used to power the frontend market page.
     """
     try:
         client = db.client
         market_coll = client["crypto_project_db"]["market_data"]
-        details_coll = client["crypto_project_db"]["all_coins_details"]
-
-        # Distinct coin_ids present in market_data (could be 'BTCUSDT' or 'bitcoin')
-        market_ids = set(market_coll.distinct('coin_id'))
-
-        # Fetch all coin details and filter in Python for flexible matching
-        all_details = list(details_coll.find({}, {"_id": 0}))
+        
+        # Get distinct coin_ids from market_data
+        market_ids = market_coll.distinct('coin_id')
+        
+        # Filter out exchange symbols (like BTCUSDT) and keep only readable ids (like bitcoin)
         result = []
-        for d in all_details:
-            coin_id = d.get('id')
-            symbol = (d.get('symbol') or '').upper()
-
-            # direct id match or symbol-based matches
-            candidates = {str(coin_id), symbol, symbol + 'USDT', symbol + 'BUSD', symbol + 'USDC'}
-            if market_ids.intersection(candidates):
-                result.append(d)
-
+        seen = set()
+        for coin_id in market_ids:
+            # Skip if it looks like a trading pair (ends with USDT, BUSD, etc.)
+            if coin_id and not coin_id.endswith(('USDT', 'BUSD', 'USDC', 'BTC', 'ETH')):
+                if coin_id not in seen:
+                    seen.add(coin_id)
+                    # Get the latest price for this coin
+                    latest = market_coll.find_one(
+                        {'coin_id': coin_id},
+                        sort=[('timestamp', -1)],
+                        projection={'_id': 0, 'close': 1, 'c': 1, 'price': 1}
+                    )
+                    current_price = None
+                    if latest:
+                        current_price = latest.get('close') or latest.get('c') or latest.get('price')
+                    
+                    result.append({
+                        'id': coin_id,
+                        'name': coin_id.replace('-', ' ').title(),
+                        'symbol': coin_id[:3].upper() if len(coin_id) >= 3 else coin_id.upper(),
+                        'current_price': current_price
+                    })
+        
+        # Sort by name
+        result.sort(key=lambda x: x['name'])
         return result
-    except Exception:
+    except Exception as e:
+        print(f"fetch_market_coins_list error: {e}")
         return []
 
 
