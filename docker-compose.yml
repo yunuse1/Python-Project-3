@@ -36,7 +36,7 @@ services:
     build: .
     image: python-project-3-init
     container_name: python-init
-    command: ["sh", "-c", "/app/scripts/docker_init.sh"]
+    command: ["sh", "/app/scripts/docker_init.sh"]
     volumes:
       - ./src:/app/src
       - ./scripts:/app/scripts
