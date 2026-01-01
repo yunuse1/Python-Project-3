@@ -6,6 +6,7 @@ import Compare from './pages/Compare';
 import Analysis from './pages/Analysis';
 import Report from './pages/Report';
 import Charts from './pages/Charts';
+import InvestorAnalysis from './pages/InvestorAnalysis';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/report" element={<Report />} />
           <Route path="/charts" element={<Charts />} />
+          <Route path="/investors" element={<InvestorAnalysis />} />
         </Routes>
       </div>
     </Router>

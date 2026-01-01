@@ -27,6 +27,9 @@ function Navbar() {
               <Link to="/charts" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
                 Seaborn Grafikleri
               </Link>
+              <Link to="/investors" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
+                Yatırımcı Analizi
+              </Link>
             </div>
           </div>
         </div>

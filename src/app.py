@@ -442,6 +442,40 @@ def get_coin_analysis(coin_id):
         print(tb)
         return jsonify({"error": str(e), "traceback": tb}), 500
 
+@app.route('/api/user-analysis/<username>', methods=['GET'])
+def get_user_performance(username):
+    """
+    Belirli bir kullanıcının portföy performansını 
+    güncel piyasa fiyatlarıyla analiz eder.
+    """
+    try:
+        # 1. Kullanıcıyı MongoDB'den bul
+        user = db.users_collection.find_one({"username": username}, {"_id": 0})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # 2. Kullanıcının elindeki coinler için güncel fiyatları topla
+        # Not: Basitlik adına her coin için market_data'daki en son kaydı alıyoruz
+        current_prices = {}
+        unique_coins = set(trade['coin'] for trade in user.get('trades', []))
+        
+        for coin_id in unique_coins:
+            coin_df = db.get_market_data(coin_id)
+            if not coin_df.empty:
+                # En son (güncel) fiyatı alıyoruz
+                current_prices[coin_id] = float(coin_df.iloc[-1]['price'])
+            else:
+                # Veri yoksa alış fiyatını varsayılan olarak kullan (PNL 0 çıkar)
+                current_prices[coin_id] = 0
+
+        # 3. Analiz motorunu çalıştır
+        performance_report = analysis_engine.analyze_user_performance(user, current_prices)
+
+        return jsonify(performance_report)
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/correlation', methods=['GET'])
 def get_correlation():
@@ -571,6 +605,23 @@ def get_coin_anomalies(coin_id):
         print(tb)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/exchange-overview', methods=['GET'])
+def get_exchange_overview():
+    try:
+        users = list(db.users_collection.find({}, {"_id": 0}))
+        
+        # Tüm portföylerdeki benzersiz coinleri bul ve güncel fiyatlarını çek
+        unique_coins = {t['coin'] for u in users for t in u.get('trades', [])}
+        current_prices = {}
+        for c in unique_coins:
+            df = db.get_market_data(c)
+            if not df.empty:
+                current_prices[c] = float(df.iloc[-1]['price'])
+        
+        overview = analysis_engine.calculate_exchange_overview(users, current_prices)
+        return jsonify(overview)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/report/<coin_id>', methods=['GET'])
 def get_scientific_report(coin_id):
@@ -636,6 +687,11 @@ def get_scientific_report(coin_id):
 
 
 if __name__ == '__main__':
+    try:
+        db.initialize_database() 
+        print("✅ Veritabanı başlangıç ayarları yapıldı.")
+    except Exception as e:
+        print(f"❌ Veritabanı başlatılamadı: {e}")
     # Run the application on port 5000 in debug mode
     # host='0.0.0.0' is required for Docker to expose the port externally
     app.run(debug=True, host='0.0.0.0', port=5000)

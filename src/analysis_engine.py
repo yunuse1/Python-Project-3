@@ -533,3 +533,89 @@ class CryptoAnalysisEngine:
                 'data_completeness': ((len(df) - df[column].isna().sum()) / len(df)) * 100
             }
         }
+# ==================== USER PORTFOLIO ANALYSIS ====================
+    
+    def analyze_user_performance(self, user_data, current_market_prices):
+        """
+        Kullanıcının portföyünü piyasa verileriyle karşılaştırıp performans analizi yapar.
+        current_market_prices: {'bitcoin': 64000, 'ethereum': 3500, ...} gibi bir sözlük bekler.
+        """
+        portfolio_report = []
+        total_pnl = 0 # Toplam Kar/Zarar
+        
+        for trade in user_data.get('trades', []):
+            coin = trade['coin']
+            buy_price = trade['buy_price']
+            amount = trade['amount']
+            
+            # Eğer bu coin için güncel fiyat market verisinde yoksa alış fiyatını baz al
+            current_price = current_market_prices.get(coin, buy_price)
+            
+            # Kar/Zarar Hesaplamaları
+            pnl = (current_price - buy_price) * amount
+            pnl_percent = ((current_price - buy_price) / (buy_price + 1e-10)) * 100
+            
+            portfolio_report.append({
+                "coin": coin,
+                "amount": amount,
+                "buy_price": buy_price,
+                "current_price": current_price,
+                "pnl": round(pnl, 2),
+                "pnl_percent": round(pnl_percent, 2)
+            })
+            total_pnl += pnl
+            
+        return {
+            "username": user_data.get('username'),
+            "wallet_balance": user_data.get('wallet_balance'),
+            "total_pnl": round(total_pnl, 2),
+            "overall_status": "Profit" if total_pnl > 0 else "Loss",
+            "portfolio_details": portfolio_report
+        }
+# ==================== GLOBAL EXCHANGE ANALYSIS ====================
+    
+    def calculate_exchange_overview(self, all_users, current_market_prices):
+        """
+        Tüm borsa verilerini analiz eder.
+        """
+        total_liquidity = 0
+        user_performances = []
+        coin_counts = {}
+
+        for user in all_users:
+            total_liquidity += user.get('wallet_balance', 0)
+            
+            user_buy_val = 0
+            user_curr_val = 0
+            
+            for trade in user.get('trades', []):
+                coin = trade['coin']
+                amount = trade['amount']
+                buy_p = trade['buy_price']
+                curr_p = current_market_prices.get(coin, buy_p)
+                
+                user_buy_val += buy_p * amount
+                user_curr_val += curr_p * amount
+                
+                # Popülerlik sayacı
+                coin_counts[coin] = coin_counts.get(coin, 0) + 1
+            
+            # Kullanıcının toplam başarı yüzdesi
+            pnl_perc = ((user_curr_val - user_buy_val) / (user_buy_val + 1e-10)) * 100
+            user_performances.append({
+                "username": user.get('username'),
+                "pnl_percent": round(pnl_perc, 2)
+            })
+
+        # Borsanın Kralı (En yüksek % kâr)
+        king = max(user_performances, key=lambda x: x['pnl_percent']) if user_performances else None
+        
+        # En popüler coin
+        popular = max(coin_counts, key=coin_counts.get) if coin_counts else "N/A"
+
+        return {
+            "king": king,
+            "total_liquidity": round(total_liquidity, 2),
+            "most_popular_coin": popular.upper(),
+            "total_investors": len(all_users)
+        }

@@ -2,6 +2,9 @@ import pymongo
 import pandas as pd
 from datetime import datetime
 import os
+import random
+from faker import Faker
+from datetime import timedelta
 
 # Docker ortamında 'mongo', lokalde 'localhost' kullanılır
 MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
@@ -79,29 +82,43 @@ def get_market_data(coin_id):
     except Exception:
         return pd.DataFrame()
 
+fake = Faker()
+
+def seed_users_into_code(count=25):
+    """
+    Analiz motorunun çalışması için gereken dinamik kullanıcı verisini 
+    MongoDB'ye entegre eder.
+    """
+    if users_collection.count_documents({}) == 0:
+        print(f"📊 Analiz için {count} adet sahte yatırımcı oluşturuluyor...")
+        
+        coins = ["bitcoin", "ethereum", "solana", "ripple", "cardano"]
+        fake_users = []
+        
+        for _ in range(count):
+            user = {
+                "username": fake.user_name(),
+                "wallet_balance": round(random.uniform(1000, 50000), 2),
+                "trades": [
+                    {
+                        "coin": random.choice(coins),
+                        "buy_price": round(random.uniform(10, 65000), 2), # Analiz için kritik
+                        "amount": round(random.uniform(0.01, 1.5), 4),
+                        "date": datetime.now() - timedelta(days=random.randint(1, 60))
+                    } for _ in range(random.randint(1, 3))
+                ],
+                "last_active": datetime.now() - timedelta(hours=random.randint(1, 720))
+            }
+            fake_users.append(user)
+        
+        users_collection.insert_many(fake_users)
+        print("✅ Dinamik kullanıcı verileri analize hazır!")
+
 def initialize_database():
-    users_collection.delete_many({})
-    
-    dummy_users = [
-        {
-            "username": "Alice_Smith",
-            "wallet_balance": 15000,
-            "trades": [
-                {"coin": "bitcoin", "buy_price": 42000, "amount": 0.05, "date": datetime(2023, 12, 1)},
-                {"coin": "solana", "buy_price": 60, "amount": 10.0, "date": datetime(2024, 1, 15)}
-            ]
-        },
-        {
-            "username": "Bob_Jones",
-            "wallet_balance": 2000,
-            "trades": [
-                {"coin": "ethereum", "buy_price": 2800, "amount": 1.0, "date": datetime(2024, 2, 20)}
-            ]
-        }
-    ]
-    
-    users_collection.insert_many(dummy_users)
-    print("Database initialized and dummy users created successfully.")
+    """Veritabanını kontrol eder ve dinamik verileri basar."""
+    # users_collection.delete_many({}) # Her seferinde sıfırlamak istersen burayı aç
+    seed_users_into_code(25) 
+    print("🚀 Database check completed and seeders integrated.")
 
 if __name__ == "__main__":
     try:
