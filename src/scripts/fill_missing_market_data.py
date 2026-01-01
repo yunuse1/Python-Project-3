@@ -4,10 +4,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from util.get_coins import fetch_and_store_binance_ohlc
 import pymongo
+
 import concurrent.futures
 
 if __name__ == '__main__':
-    client = pymongo.MongoClient('mongodb://localhost:27017/')
+    # Docker ortamında 'mongo', lokalde 'localhost' kullanılır
+    MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
+    client = pymongo.MongoClient(f'mongodb://{MONGO_HOST}:27017/')
     db = client['crypto_project_db']
     
     # all_coins'deki tüm coinleri al

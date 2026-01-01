@@ -2,6 +2,15 @@
 
 Lightweight backend + frontend for displaying cryptocurrency lists and charts.
 
+
+python src/scripts/update_indexed_percent.py
+
+# backend
+python src/app.py
+
+# frontend (ayrı terminal)
+cd frontend
+npm run dev
 Quick start
 -----------
 

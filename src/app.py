@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, request
 import traceback
 from datetime import datetime, timezone
@@ -8,15 +7,12 @@ from flask_cors import CORS
 from db import database_manager as db
 
 app = Flask(__name__)
-# Enable CORS (Cross-Origin Resource Sharing)
 CORS(app)
 
-# Tüm coinlerin detaylı verisini dönen endpoint
+
 @app.route('/api/all-coins', methods=['GET'])
 def get_all_coins():
-    """
-    Tüm coinlerin detaylı verisini MongoDB'den döner.
-    """
+    """Tüm coinlerin detaylı verisini MongoDB'den döner."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["all_coins_details"]
@@ -28,13 +24,9 @@ def get_all_coins():
         return jsonify({"error": str(e), "traceback": tb}), 500
 
 
-# Initialize the Flask application
-
 @app.route('/api/popular-coins', methods=['GET'])
 def get_popular_coins():
-    """
-    Popüler coinlerin özet verisini MongoDB'den döner.
-    """
+    """Popüler coinlerin özet verisini MongoDB'den döner."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["popular_coins"]
@@ -43,11 +35,10 @@ def get_popular_coins():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/')
 def home():
-    """
-    Health check route to verify the API is running.
-    """
+    """Health check route."""
     return "Crypto Analysis API is running! 🚀"
 
 @app.route('/api/market/<coin_id>', methods=['GET'])
@@ -284,4 +275,5 @@ def get_indexed_series():
 
 if __name__ == '__main__':
     # Run the application on port 5000 in debug mode
-    app.run(debug=True, port=5000)
+    # host='0.0.0.0' is required for Docker to expose the port externally
+    app.run(debug=True, host='0.0.0.0', port=5000)

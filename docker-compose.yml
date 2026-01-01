@@ -1,0 +1,54 @@
+services:
+  backend:
+    build: .
+    container_name: python-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      - FLASK_ENV=development
+      - MONGO_HOST=mongo
+    depends_on:
+      - mongo
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react-frontend
+    ports:
+      - "5173:5173"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app:delegated
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+  init-data:
+    build: .
+    image: python-project-3-init
+    container_name: python-init
+    command: ["sh", "-c", "/app/scripts/docker_init.sh"]
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      - MONGO_HOST=mongo
+    depends_on:
+      - mongo
+    restart: "no"
+  mongo:
+    image: mongo:6.0
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  mongo-data:
+  frontend_node_modules:

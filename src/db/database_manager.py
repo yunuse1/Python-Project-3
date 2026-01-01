@@ -1,8 +1,11 @@
 import pymongo
 import pandas as pd
 from datetime import datetime
+import os
 
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+# Docker ortamında 'mongo', lokalde 'localhost' kullanılır
+MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
+client = pymongo.MongoClient(f"mongodb://{MONGO_HOST}:27017/")
 db = client["crypto_project_db"]
 users_collection = db["users"]
 market_collection = db["market_data"]
@@ -57,6 +60,9 @@ def get_market_data(coin_id):
                 if not df4.empty:
                     df = df4
 
+        # Fiyatı 0 veya None olan satırları filtrele
+        if not df.empty and "price" in df.columns:
+            df = df[(df["price"].notnull()) & (df["price"] != 0)]
         # Eğer timestamp varsa DateTime'ye çevirip sıralayalım
         if not df.empty and "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"])
