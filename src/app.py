@@ -179,39 +179,42 @@ def fetch_market_coins_list():
         client = db.client
         market_coll = client["crypto_project_db"]["market_data"]
         
-        # Get distinct coin_ids from market_data
-        market_ids = market_coll.distinct('coin_id')
+        # Use aggregation to get distinct coins with their latest prices in ONE query
+        pipeline = [
+            # Filter out trading pairs (BTCUSDT, etc.)
+            {'$match': {
+                'coin_id': {'$not': {'$regex': '(USDT|BUSD|USDC|BTC|ETH)$'}}
+            }},
+            # Sort by timestamp descending to get latest first
+            {'$sort': {'timestamp': -1}},
+            # Group by coin_id and get first (latest) document
+            {'$group': {
+                '_id': '$coin_id',
+                'current_price': {'$first': {'$ifNull': ['$close', {'$ifNull': ['$c', '$price']}]}}
+            }}
+        ]
         
-        # Filter out exchange symbols (like BTCUSDT) and keep only readable ids (like bitcoin)
+        results = list(market_coll.aggregate(pipeline))
+        
+        # Build response
         result = []
-        seen = set()
-        for coin_id in market_ids:
-            # Skip if it looks like a trading pair (ends with USDT, BUSD, etc.)
-            if coin_id and not coin_id.endswith(('USDT', 'BUSD', 'USDC', 'BTC', 'ETH')):
-                if coin_id not in seen:
-                    seen.add(coin_id)
-                    # Get the latest price for this coin
-                    latest = market_coll.find_one(
-                        {'coin_id': coin_id},
-                        sort=[('timestamp', -1)],
-                        projection={'_id': 0, 'close': 1, 'c': 1, 'price': 1}
-                    )
-                    current_price = None
-                    if latest:
-                        current_price = latest.get('close') or latest.get('c') or latest.get('price')
-                    
-                    # Get symbol for display
-                    symbol = COIN_SYMBOLS.get(coin_id, coin_id[:3].upper())
-                    # Use CoinCap API for coin images (works with coin IDs)
-                    image_url = f"https://assets.coincap.io/assets/icons/{symbol.lower()}@2x.png"
-                    
-                    result.append({
-                        'id': coin_id,
-                        'name': coin_id.replace('-', ' ').title(),
-                        'symbol': symbol,
-                        'current_price': current_price,
-                        'image': image_url
-                    })
+        for doc in results:
+            coin_id = doc['_id']
+            if not coin_id:
+                continue
+            
+            # Get symbol for display
+            symbol = COIN_SYMBOLS.get(coin_id, coin_id[:3].upper())
+            # Use CoinCap API for coin images
+            image_url = f"https://assets.coincap.io/assets/icons/{symbol.lower()}@2x.png"
+            
+            result.append({
+                'id': coin_id,
+                'name': coin_id.replace('-', ' ').title(),
+                'symbol': symbol,
+                'current_price': doc.get('current_price'),
+                'image': image_url
+            })
         
         # Sort by name
         result.sort(key=lambda x: x['name'])
