@@ -3,11 +3,16 @@ import traceback
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import pandas as pd
+import numpy as np
 from flask_cors import CORS
 from db import database_manager as db
+from analysis_engine import CryptoAnalysisEngine
 
 app = Flask(__name__)
 CORS(app)
+
+# Analysis engine instance
+analysis_engine = CryptoAnalysisEngine()
 
 
 @app.route('/api/all-coins', methods=['GET'])
@@ -272,6 +277,284 @@ def get_indexed_series():
         return jsonify({"coins": results, "ranking": ranking})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/analysis/<coin_id>', methods=['GET'])
+def get_coin_analysis(coin_id):
+    """
+    Bir coin için detaylı teknik analiz ve risk metrikleri döner.
+    RSI, MACD, Bollinger Bands, Volatilite, Sharpe Ratio, Trend analizi
+    """
+    try:
+        df = db.get_market_data(coin_id)
+        
+        if df.empty:
+            return jsonify({"error": "Data not found"}), 404
+        
+        # Normalize price column
+        if 'price' not in df.columns:
+            if 'close' in df.columns:
+                df['price'] = df['close']
+            elif 'c' in df.columns:
+                df['price'] = df['c']
+        
+        df['price'] = pd.to_numeric(df['price'], errors='coerce')
+        df = df.dropna(subset=['price'])
+        
+        if len(df) < 30:
+            return jsonify({"error": "Insufficient data for analysis", "data_points": len(df)}), 400
+        
+        # Full analysis
+        analysis = analysis_engine.get_full_analysis(df, column='price')
+        
+        # DataFrame'i çıkar (JSON'a çevrilemez)
+        analysis_df = analysis.pop('dataframe')
+        
+        # NaN değerleri None'a çevir
+        def clean_value(v):
+            if isinstance(v, float) and (np.isnan(v) or np.isinf(v)):
+                return None
+            return v
+        
+        def clean_dict(d):
+            if isinstance(d, dict):
+                return {k: clean_dict(v) for k, v in d.items()}
+            elif isinstance(d, list):
+                return [clean_dict(v) for v in d]
+            else:
+                return clean_value(d)
+        
+        analysis = clean_dict(analysis)
+        
+        # Son 30 günlük veri serisi (grafik için)
+        recent_df = analysis_df.tail(30).copy()
+        series_data = []
+        for _, row in recent_df.iterrows():
+            ts = row.get('timestamp')
+            if pd.notna(ts):
+                if isinstance(ts, datetime):
+                    ts_str = ts.isoformat()
+                else:
+                    ts_str = str(ts)
+            else:
+                continue
+            
+            series_data.append({
+                'timestamp': ts_str,
+                'price': clean_value(row.get('price')),
+                'sma_7': clean_value(row.get('sma_7')),
+                'sma_30': clean_value(row.get('sma_30')),
+                'rsi': clean_value(row.get('rsi')),
+                'bb_upper': clean_value(row.get('bb_upper')),
+                'bb_middle': clean_value(row.get('bb_middle')),
+                'bb_lower': clean_value(row.get('bb_lower')),
+                'macd': clean_value(row.get('macd')),
+                'macd_signal': clean_value(row.get('macd_signal')),
+                'macd_histogram': clean_value(row.get('macd_histogram'))
+            })
+        
+        analysis['series'] = series_data
+        analysis['coin_id'] = coin_id
+        
+        return jsonify(analysis)
+        
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e), "traceback": tb}), 500
+
+
+@app.route('/api/correlation', methods=['GET'])
+def get_correlation():
+    """
+    Birden fazla coin için korelasyon matrisi döner.
+    Query params: coins=bitcoin,ethereum,solana
+    """
+    try:
+        coins_param = request.args.get('coins', 'bitcoin,ethereum,solana')
+        coins = [c.strip() for c in coins_param.split(',') if c.strip()]
+        
+        if len(coins) < 2:
+            return jsonify({"error": "At least 2 coins required"}), 400
+        
+        coin_dfs = {}
+        for coin in coins:
+            df = db.get_market_data(coin)
+            if not df.empty:
+                if 'price' not in df.columns:
+                    if 'close' in df.columns:
+                        df['price'] = df['close']
+                    elif 'c' in df.columns:
+                        df['price'] = df['c']
+                df['price'] = pd.to_numeric(df['price'], errors='coerce')
+                coin_dfs[coin] = df
+        
+        if len(coin_dfs) < 2:
+            return jsonify({"error": "Not enough coins with data"}), 400
+        
+        correlation = analysis_engine.calculate_correlation_matrix(coin_dfs)
+        
+        # NaN değerleri temizle
+        def clean_corr(d):
+            if isinstance(d, dict):
+                return {k: clean_corr(v) for k, v in d.items()}
+            elif isinstance(d, float) and (np.isnan(d) or np.isinf(d)):
+                return None
+            return d
+        
+        return jsonify({
+            "coins": list(coin_dfs.keys()),
+            "correlation_matrix": clean_corr(correlation)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/anomalies/<coin_id>', methods=['GET'])
+def get_coin_anomalies(coin_id):
+    """
+    Coin için anomali tespiti ve özet istatistikleri döner.
+    Z-Score, IQR ve Rolling window metodları kullanılır.
+    """
+    try:
+        df = db.get_market_data(coin_id)
+        
+        if df.empty:
+            return jsonify({"error": "Data not found"}), 404
+        
+        # Normalize price column
+        if 'price' not in df.columns:
+            if 'close' in df.columns:
+                df['price'] = df['close']
+            elif 'c' in df.columns:
+                df['price'] = df['c']
+        
+        df['price'] = pd.to_numeric(df['price'], errors='coerce')
+        df = df.dropna(subset=['price'])
+        
+        if len(df) < 10:
+            return jsonify({"error": "Insufficient data for anomaly detection"}), 400
+        
+        # Anomali analizi
+        anomaly_result = analysis_engine.get_anomaly_summary(df, column='price')
+        
+        # DataFrame'i çıkar
+        anomaly_df = anomaly_result.pop('dataframe')
+        
+        # NaN değerleri temizle
+        def clean_value(v):
+            if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
+                return None
+            if isinstance(v, (np.int64, np.int32)):
+                return int(v)
+            if isinstance(v, (np.float64, np.float32)):
+                return float(v)
+            return v
+        
+        def clean_dict(d):
+            if isinstance(d, dict):
+                return {k: clean_dict(v) for k, v in d.items()}
+            elif isinstance(d, list):
+                return [clean_dict(v) for v in d]
+            else:
+                return clean_value(d)
+        
+        anomaly_result = clean_dict(anomaly_result)
+        
+        # Son 30 günlük anomali verisi (grafik için)
+        recent_df = anomaly_df.tail(30).copy()
+        series_data = []
+        for _, row in recent_df.iterrows():
+            ts = row.get('timestamp')
+            if pd.notna(ts):
+                ts_str = ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+            else:
+                continue
+            
+            series_data.append({
+                'timestamp': ts_str,
+                'price': clean_value(row.get('price')),
+                'zscore': clean_value(row.get('zscore')),
+                'rolling_zscore': clean_value(row.get('rolling_zscore')),
+                'pct_change': clean_value(row.get('pct_change')),
+                'is_anomaly': bool(row.get('is_anomaly_any', False)),
+                'is_spike': bool(row.get('is_spike', False))
+            })
+        
+        anomaly_result['series'] = series_data
+        anomaly_result['coin_id'] = coin_id
+        
+        return jsonify(anomaly_result)
+        
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/report/<coin_id>', methods=['GET'])
+def get_scientific_report(coin_id):
+    """
+    Coin için kapsamlı bilimsel rapor döner.
+    Descriptive statistics, returns analysis, risk analysis, anomaly detection
+    """
+    try:
+        df = db.get_market_data(coin_id)
+        
+        if df.empty:
+            return jsonify({"error": "Data not found"}), 404
+        
+        # Normalize price column
+        if 'price' not in df.columns:
+            if 'close' in df.columns:
+                df['price'] = df['close']
+            elif 'c' in df.columns:
+                df['price'] = df['c']
+        
+        df['price'] = pd.to_numeric(df['price'], errors='coerce')
+        df = df.dropna(subset=['price'])
+        
+        if len(df) < 30:
+            return jsonify({"error": "Insufficient data for scientific report"}), 400
+        
+        # Coin adını al
+        client = db.client
+        details_coll = client["crypto_project_db"]["all_coins_details"]
+        coin_info = details_coll.find_one({"id": coin_id}, {"_id": 0, "name": 1})
+        coin_name = coin_info.get('name', coin_id) if coin_info else coin_id
+        
+        # Bilimsel rapor oluştur
+        report = analysis_engine.generate_scientific_report(df, column='price', coin_name=coin_name)
+        
+        # NaN değerleri temizle
+        def clean_value(v):
+            if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
+                return None
+            if isinstance(v, (np.int64, np.int32)):
+                return int(v)
+            if isinstance(v, (np.float64, np.float32)):
+                return float(v)
+            return v
+        
+        def clean_dict(d):
+            if isinstance(d, dict):
+                return {k: clean_dict(v) for k, v in d.items()}
+            elif isinstance(d, list):
+                return [clean_dict(v) for v in d]
+            else:
+                return clean_value(d)
+        
+        report = clean_dict(report)
+        report['coin_id'] = coin_id
+        
+        return jsonify(report)
+        
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     # Run the application on port 5000 in debug mode

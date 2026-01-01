@@ -1,17 +1,22 @@
 #!/bin/sh
 set -e
 
+echo "=============================================="
 echo "Starting initial data population..."
+echo "=============================================="
 
-echo "1) Populating all_coins and all_coins_details"
-python src/scripts/populate_all_coins.py
-
-echo "2) Populating market data (fast)"
+echo ""
+echo "1) Populating coin list and OHLC market data"
+echo "   (This pulls 90 days of data for ~100 coins)"
 python src/scripts/populate_market_data_fast.py
 
-echo "3) Filling missing market data"
-python src/scripts/fill_missing_market_data.py
+echo ""
+echo "2) Generating Seaborn visualizations"
+python analysis/seaborn_analysis.py
 
-echo "Initial data population complete."
+echo ""
+echo "=============================================="
+echo "Initial data population complete!"
+echo "=============================================="
 
 exit 0

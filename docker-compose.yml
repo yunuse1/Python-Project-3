@@ -7,7 +7,9 @@ services:
     volumes:
       - ./src:/app/src
       - ./scripts:/app/scripts
+      - ./analysis:/app/analysis
       - ./requirements.txt:/app/requirements.txt
+      - plots-data:/app/analysis/plots
     environment:
       - FLASK_ENV=development
       - MONGO_HOST=mongo
@@ -24,10 +26,12 @@ services:
     volumes:
       - ./frontend:/app:delegated
       - frontend_node_modules:/app/node_modules
+      - plots-data:/app/public/plots
     environment:
       - NODE_ENV=development
     depends_on:
       - backend
+      - init-data
   init-data:
     build: .
     image: python-project-3-init
@@ -36,7 +40,9 @@ services:
     volumes:
       - ./src:/app/src
       - ./scripts:/app/scripts
+      - ./analysis:/app/analysis
       - ./requirements.txt:/app/requirements.txt
+      - plots-data:/app/analysis/plots
     environment:
       - MONGO_HOST=mongo
     depends_on:
@@ -52,3 +58,4 @@ services:
 volumes:
   mongo-data:
   frontend_node_modules:
+  plots-data:

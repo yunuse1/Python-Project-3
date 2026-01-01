@@ -3,6 +3,9 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import CoinDetail from './pages/CoinDetail';
 import Compare from './pages/Compare';
+import Analysis from './pages/Analysis';
+import Report from './pages/Report';
+import Charts from './pages/Charts';
 
 function App() {
   return (
@@ -13,6 +16,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/coin/:id" element={<CoinDetail />} />
           <Route path="/compare" element={<Compare />} />
+          <Route path="/analysis" element={<Analysis />} />
+          <Route path="/report" element={<Report />} />
+          <Route path="/charts" element={<Charts />} />
         </Routes>
       </div>
     </Router>

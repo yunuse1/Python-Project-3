@@ -18,6 +18,15 @@ function Navbar() {
               <Link to="/compare" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
                 Karşılaştırma
               </Link>
+              <Link to="/analysis" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
+                Teknik Analiz
+              </Link>
+              <Link to="/report" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
+                Bilimsel Rapor
+              </Link>
+              <Link to="/charts" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
+                Seaborn Grafikleri
+              </Link>
             </div>
           </div>
         </div>

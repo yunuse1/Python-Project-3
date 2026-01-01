@@ -1,0 +1,2 @@
+# Bu klasör Docker başlatıldığında Seaborn grafikleriyle doldurulur.
+# Grafikler init-data container'ı tarafından oluşturulur.
