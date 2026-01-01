@@ -136,31 +136,58 @@ function Compare() {
         <ResponsiveContainer width="100%" height="100%">
           {analysis && analysis.coins && analysis.coins[coin1] && analysis.coins[coin2] && coin1 !== coin2 ? (
             (() => {
-              // Merge indexed series by timestamp union
-              const s1 = (analysis.coins[coin1].series || []).map(x => ({ timestamp: x.timestamp, indexed1: x.indexed }));
-              const s2 = (analysis.coins[coin2].series || []).map(x => ({ timestamp: x.timestamp, indexed2: x.indexed }));
-              const allTimestamps = Array.from(new Set([...s1.map(x=>x.timestamp), ...s2.map(x=>x.timestamp)]));
+              // Merge series by timestamp union - use real prices
+              const s1 = (analysis.coins[coin1].series || []).map(x => ({ timestamp: x.timestamp, price1: x.price }));
+              const s2 = (analysis.coins[coin2].series || []).map(x => ({ timestamp: x.timestamp, price2: x.price }));
+              const allTimestamps = Array.from(new Set([...s1.map(x=>x.timestamp), ...s2.map(x=>x.timestamp)])).sort();
               const merged = allTimestamps.map(ts => {
                 const d1 = s1.find(x => x.timestamp === ts);
                 const d2 = s2.find(x => x.timestamp === ts);
                 return {
                   timestamp: ts,
-                  indexed1: d1 ? d1.indexed1 : null,
-                  indexed2: d2 ? d2.indexed2 : null
+                  price1: d1 ? d1.price1 : null,
+                  price2: d2 ? d2.price2 : null
                 };
-              }).filter(d => (d.indexed1 !== null && d.indexed1 !== 0) || (d.indexed2 !== null && d.indexed2 !== 0));
+              }).filter(d => d.price1 !== null || d.price2 !== null);
               if (merged.length === 0) {
                 return <div className="text-center text-red-400 pt-20">Karşılaştırma için yeterli veri yok.</div>;
               }
+              
+              // Format price for axis
+              const formatPrice = (value) => {
+                if (value >= 1000) return `$${(value/1000).toFixed(0)}K`;
+                if (value >= 1) return `$${value.toFixed(0)}`;
+                return `$${value.toFixed(4)}`;
+              };
+              
               return (
                 <LineChart data={merged}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="timestamp" tickFormatter={formatDate} stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip labelFormatter={formatDate} contentStyle={{backgroundColor: '#0f172a'}} formatter={(v,name)=>[v, name.includes('1')?coin1.toUpperCase():coin2.toUpperCase()]} />
+                  <YAxis 
+                    yAxisId="left" 
+                    stroke="#3b82f6" 
+                    tickFormatter={formatPrice}
+                    orientation="left"
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    stroke="#a855f7" 
+                    tickFormatter={formatPrice}
+                    orientation="right"
+                  />
+                  <Tooltip 
+                    labelFormatter={formatDate} 
+                    contentStyle={{backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px'}} 
+                    formatter={(value, name) => {
+                      if (value === null) return ['-', name];
+                      const priceStr = `$${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                      return [priceStr, name];
+                    }} 
+                  />
                   <Legend />
-                  <Line type="monotone" dataKey="indexed1" name={`${coin1.toUpperCase()} (indexed)`} stroke="#3b82f6" strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey="indexed2" name={`${coin2.toUpperCase()} (indexed)`} stroke="#a855f7" strokeWidth={3} dot={false} />
+                  <Line yAxisId="left" type="monotone" dataKey="price1" name={coin1.toUpperCase()} stroke="#3b82f6" strokeWidth={3} dot={false} connectNulls />
+                  <Line yAxisId="right" type="monotone" dataKey="price2" name={coin2.toUpperCase()} stroke="#a855f7" strokeWidth={3} dot={false} connectNulls />
                 </LineChart>
               );
             })()
