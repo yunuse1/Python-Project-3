@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import API_BASE from '../config';
 
 function Home() {
   const [coins, setCoins] = useState([]);
@@ -14,7 +15,7 @@ function Home() {
     const fetchCoins = async () => {
       try {
         // Backend'deki sadece market verisi olan coinleri çeken endpoint
-        const res = await axios.get('http://127.0.0.1:5000/api/market-coins');
+        const res = await axios.get(`${API_BASE}/api/market-coins`);
         setCoins(res.data);
       } catch (err) {
         console.error("Veri çekilemedi:", err);

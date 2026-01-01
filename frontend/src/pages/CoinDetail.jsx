@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE from '../config';
 // Standart ve temiz import
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -13,7 +14,7 @@ function CoinDetail() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:5000/api/market/${id}`);
+        const res = await axios.get(`${API_BASE}/api/market/${id}`);
         const normalize = (r) => {
           if (Array.isArray(r)) return r;
           if (r && Array.isArray(r.data)) return r.data;
@@ -33,7 +34,7 @@ function CoinDetail() {
       // fetch indexed series (default base: last 30 days)
       const fetchIndexed = async () => {
         try {
-          const r = await axios.get(`http://127.0.0.1:5000/api/market/indexed?coins=${id}`);
+          const r = await axios.get(`${API_BASE}/api/market/indexed?coins=${id}`);
           if (r && r.data && r.data.coins && r.data.coins[id]) {
             setIndexedSummary(r.data.coins[id].summary || null);
           } else {

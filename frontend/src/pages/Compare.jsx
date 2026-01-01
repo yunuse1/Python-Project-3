@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE from '../config';
 // Standart ve temiz import
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -19,15 +20,15 @@ function Compare() {
 
   useEffect(() => {
     // Use market-only coins so compare select lists only coins with market data
-    axios.get('http://127.0.0.1:5000/api/market-coins').then(res => setAllCoins(res.data));
+    axios.get(`${API_BASE}/api/market-coins`).then(res => setAllCoins(res.data));
   }, []);
 
   useEffect(() => {
     const fetchCompareData = async () => {
         try {
             console.debug('compare: selected coins', coin1, coin2);
-            const res1 = await axios.get(`http://127.0.0.1:5000/api/market/${coin1}`);
-            const res2 = await axios.get(`http://127.0.0.1:5000/api/market/${coin2}`);
+            const res1 = await axios.get(`${API_BASE}/api/market/${coin1}`);
+            const res2 = await axios.get(`${API_BASE}/api/market/${coin2}`);
         // Normalize API responses into sorted arrays of { timestamp: ISO, price: number|null }
         const normalize = (r) => {
           const raw = Array.isArray(r) ? r : (r && Array.isArray(r.data) ? r.data : []);
@@ -59,7 +60,7 @@ function Compare() {
     // fetch indexed analysis for both coins
     const fetchAnalysis = async () => {
       try {
-        const r = await axios.get(`http://127.0.0.1:5000/api/market/indexed?coins=${coin1},${coin2}`);
+        const r = await axios.get(`${API_BASE}/api/market/indexed?coins=${coin1},${coin2}`);
         console.debug('compare: analysis keys', Object.keys(r.data.coins || {}));
         setAnalysis(r.data || null);
       } catch (e) {

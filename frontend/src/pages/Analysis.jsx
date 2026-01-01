@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, BarChart, Bar, ReferenceLine } from 'recharts';
+import API_BASE from '../config';
 
 function Analysis() {
   const [coin, setCoin] = useState('bitcoin');
@@ -10,7 +11,7 @@ function Analysis() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/market-coins')
+    axios.get(`${API_BASE}/api/market-coins`)
       .then(res => setAllCoins(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -20,7 +21,7 @@ function Analysis() {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get(`http://127.0.0.1:5000/api/analysis/${coin}`);
+        const res = await axios.get(`${API_BASE}/api/analysis/${coin}`);
         setAnalysis(res.data);
       } catch (err) {
         setError(err.response?.data?.error || 'Analiz yüklenemedi');

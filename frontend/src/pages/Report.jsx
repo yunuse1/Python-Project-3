@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ScatterChart, Scatter, ReferenceLine, Cell } from 'recharts';
+import API_BASE from '../config';
 
 function Report() {
   const [coin, setCoin] = useState('bitcoin');
@@ -11,7 +12,7 @@ function Report() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/market-coins')
+    axios.get(`${API_BASE}/api/market-coins`)
       .then(res => setAllCoins(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -22,8 +23,8 @@ function Report() {
       setError(null);
       try {
         const [reportRes, anomalyRes] = await Promise.all([
-          axios.get(`http://127.0.0.1:5000/api/report/${coin}`),
-          axios.get(`http://127.0.0.1:5000/api/anomalies/${coin}`)
+          axios.get(`${API_BASE}/api/report/${coin}`),
+          axios.get(`${API_BASE}/api/anomalies/${coin}`)
         ]);
         setReport(reportRes.data);
         setAnomalies(anomalyRes.data);
