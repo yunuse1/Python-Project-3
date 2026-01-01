@@ -129,6 +129,30 @@ def get_users():
         return jsonify({"error": str(e)}), 500
 
 
+# Coin ID to symbol mapping for images
+COIN_SYMBOLS = {
+    'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'cardano': 'ADA',
+    'ripple': 'XRP', 'dogecoin': 'DOGE', 'polkadot': 'DOT', 'avalanche-2': 'AVAX',
+    'chainlink': 'LINK', 'litecoin': 'LTC', 'binancecoin': 'BNB', 'shiba-inu': 'SHIB',
+    'tron': 'TRX', 'bitcoin-cash': 'BCH', 'uniswap': 'UNI', 'stellar': 'XLM',
+    'cosmos': 'ATOM', 'ethereum-classic': 'ETC', 'filecoin': 'FIL', 'hedera-hashgraph': 'HBAR',
+    'internet-computer': 'ICP', 'vechain': 'VET', 'aave': 'AAVE', 'the-sandbox': 'SAND',
+    'elrond-erd-2': 'EGLD', 'maker': 'MKR', 'near': 'NEAR', 'algorand': 'ALGO',
+    'quant-network': 'QNT', 'tezos': 'XTZ', 'the-graph': 'GRT', 'axie-infinity': 'AXS',
+    'fantom': 'FTM', 'theta-token': 'THETA', 'pancakeswap-token': 'CAKE', 'klay-token': 'KLAY',
+    'chiliz': 'CHZ', 'enjincoin': 'ENJ', 'zilliqa': 'ZIL', 'harmony': 'ONE',
+    'matic-network': 'MATIC', 'nem': 'XEM', 'holo': 'HOT', 'dash': 'DASH',
+    'compound-governance-token': 'COMP', 'basic-attention-token': 'BAT', '0x': 'ZRX',
+    'synthetix-network-token': 'SNX', 'yearn-finance': 'YFI', 'omisego': 'OMG',
+    'ravencoin': 'RVN', 'siacoin': 'SC', 'digibyte': 'DGB', 'lisk': 'LSK',
+    'nano': 'NANO', 'horizen': 'ZEN', 'icon': 'ICX', 'stormx': 'STMX',
+    'celer-network': 'CELR', 'cartesi': 'CTSI', 'band-protocol': 'BAND',
+    'loopring': 'LRC', 'civic': 'CVC', 'dock': 'DOCK', 'wazirx': 'WRX',
+    'trust-wallet-token': 'TWT', 'fetch-ai': 'FET', 'certik': 'CTK',
+    'optimism': 'OP', 'arbitrum': 'ARB', 'sui': 'SUI', 'celestia': 'TIA',
+    'immutable-x': 'IMX', 'lido-dao': 'LDO', 'gala': 'GALA', 'ordi': 'ORDI'
+}
+
 def fetch_market_coins_list():
     """
     Returns list of coins that have market_data entries.
@@ -159,11 +183,17 @@ def fetch_market_coins_list():
                     if latest:
                         current_price = latest.get('close') or latest.get('c') or latest.get('price')
                     
+                    # Get symbol for display
+                    symbol = COIN_SYMBOLS.get(coin_id, coin_id[:3].upper())
+                    # Use CoinCap API for coin images (works with coin IDs)
+                    image_url = f"https://assets.coincap.io/assets/icons/{symbol.lower()}@2x.png"
+                    
                     result.append({
                         'id': coin_id,
                         'name': coin_id.replace('-', ' ').title(),
-                        'symbol': coin_id[:3].upper() if len(coin_id) >= 3 else coin_id.upper(),
-                        'current_price': current_price
+                        'symbol': symbol,
+                        'current_price': current_price,
+                        'image': image_url
                     })
         
         # Sort by name
@@ -172,7 +202,6 @@ def fetch_market_coins_list():
     except Exception as e:
         print(f"fetch_market_coins_list error: {e}")
         return []
-
 
 @app.route('/api/market-coins', methods=['GET'])
 def get_market_coins():
