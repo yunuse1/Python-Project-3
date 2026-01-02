@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pymongo
 
-# Docker ortamında 'mongo', lokalde 'localhost' kullanılır
+# Use 'mongo' in Docker environment, 'localhost' locally
 MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
 MONGO_URI = f"mongodb://{MONGO_HOST}:27017/"
 DB_NAME = "crypto_project_db"

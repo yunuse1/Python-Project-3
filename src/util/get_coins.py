@@ -4,8 +4,13 @@ import pymongo
 from datetime import datetime
 import pandas as pd
 import os
+import logging
 
-# Docker ortamında 'mongo', lokalde 'localhost' kullanılır
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Use 'mongo' for Docker environment, 'localhost' for local development
 MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
 MONGO_URI = f"mongodb://{MONGO_HOST}:27017/"
 DB_NAME = "crypto_project_db"
@@ -147,7 +152,7 @@ def fetch_and_store_all_coin_details_full():
     db = client[DB_NAME]
     collection = db["all_coins_details"]
     all_coins = list(db["all_coins"].find({}, {"id": 1, "_id": 0}))
-    print(f"Toplam {len(all_coins)} coin detayları çekilecek...")
+    logger.info(f"Fetching details for {len(all_coins)} coins...")
     for idx, coin in enumerate(all_coins):
         coin_id = coin["id"]
         detail = fetch_coin_detail(coin_id)
@@ -163,18 +168,18 @@ def fetch_and_store_all_coin_details_full():
                 "last_updated": datetime.now()
             }
             collection.update_one({"id": coin_id}, {"$set": coin_data}, upsert=True)
-            print(f"[{idx+1}/{len(all_coins)}] {coin_id} detay kaydedildi.")
+            logger.info(f"[{idx+1}/{len(all_coins)}] {coin_id} detail saved.")
         else:
-            print(f"{coin_id} detay alınamadı.")
-        time.sleep(1.2)  # API rate limit için bekle
-    print("Tüm coin detayları tamamlandı.")
+            logger.warning(f"{coin_id} detail could not be fetched.")
+        time.sleep(1.2)  # Wait for API rate limit
+    logger.info("All coin details completed.")
     
 def fetch_all_coins():
     url = "https://api.binance.com/api/v3/ticker/price"
     response = requests.get(url)
     if response.status_code == 200:
         coins = response.json()
-        # Tüm USDT paritelerini al (sadece ilk 1000)
+        # Get all USDT pairs (only first 1000)
         filtered = [c for c in coins if c['symbol'].endswith('USDT')][:1000]
         result = []
         for coin in filtered:
@@ -188,10 +193,10 @@ def fetch_all_coins():
                 'image': None,
                 'price_change_percentage_24h': None
             })
-        print(f"API'dan {len(result)} USDT paritesi çekildi.")
+        logger.info(f"Fetched {len(result)} USDT pairs from API.")
         return result
     else:
-        print("Binance API'dan coin listesi alınamadı.")
+        logger.error("Failed to fetch coin list from Binance API.")
         return []
 
 def fetch_coin_detail(coin_id):
@@ -210,9 +215,9 @@ def upsert_coins_to_db(coins):
     for coin in coins:
         coin["last_updated"] = datetime.now()
         collection.update_one({"id": coin["id"]}, {"$set": coin}, upsert=True)
-    print(f"{len(coins)} coin güncellendi/eklendi.")
+    logger.info(f"{len(coins)} coins updated/inserted.")
 
-# Popüler coinlerin detaylı verisi için ayrı koleksiyon
+# Popular coins for detailed data collection
 POPULAR_COINS = ["bitcoin", "ethereum", "solana", "avalanche-2"]
 POPULAR_COLLECTION = "popular_coins"
 
@@ -223,7 +228,7 @@ def fetch_and_store_popular_coins():
     for coin_id in POPULAR_COINS:
         detail = fetch_coin_detail(coin_id)
         if detail:
-            # Sadece temel alanları kaydet
+            # Save only basic fields
             coin_data = {
                 "id": detail.get("id"),
                 "symbol": detail.get("symbol"),
@@ -235,21 +240,21 @@ def fetch_and_store_popular_coins():
                 "last_updated": datetime.now()
             }
             collection.update_one({"id": coin_id}, {"$set": coin_data}, upsert=True)
-            print(f"{coin_id} güncellendi.")
+            logger.info(f"{coin_id} updated.")
         else:
-            print(f"{coin_id} verisi alınamadı.")
+            logger.warning(f"{coin_id} data could not be fetched.")
 
 
 def update_all_coins():
-    print(f"[ {datetime.now()} ] Coin listesi çekiliyor...")
+    logger.info(f"[{datetime.now()}] Fetching coin list...")
     coins = fetch_all_coins()
     if coins:
         upsert_coins_to_db(coins)
     else:
-        print("Coin listesi alınamadı.")
-    print(f"[ {datetime.now()} ] Popüler coinler güncelleniyor...")
+        logger.warning("Failed to fetch coin list.")
+    logger.info(f"[{datetime.now()}] Updating popular coins...")
     fetch_and_store_popular_coins()
-    print(f"[ {datetime.now()} ] Tüm coinlerin detayları güncelleniyor...")
+    logger.info(f"[{datetime.now()}] Updating all coin details...")
     fetch_and_store_all_coin_details()
 
 def fetch_and_store_all_coin_details():
@@ -258,17 +263,17 @@ def fetch_and_store_all_coin_details():
     collection = db["all_coins_details"]
     per_page = 250
     total_inserted = 0
-    max_pages = 4  # İlk 1000 popüler coin
+    max_pages = 4  # First 1000 popular coins
     for page in range(1, max_pages + 1):
         url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page={per_page}&page={page}"
         response = requests.get(url)
         if response.status_code != 200:
-            print(f"API hatası: {response.status_code}")
+            logger.error(f"API error: {response.status_code}")
             break
         coins = response.json()
         if not coins:
             break
-        print(f"Sayfa {page} - {len(coins)} coin işleniyor...")
+        logger.info(f"Page {page} - Processing {len(coins)} coins...")
         for idx, coin in enumerate(coins):
             coin_data = {
                 "id": coin.get("id"),
@@ -282,31 +287,31 @@ def fetch_and_store_all_coin_details():
             }
             collection.update_one({"id": coin["id"]}, {"$set": coin_data}, upsert=True)
             total_inserted += 1
-        print(f"Toplam eklenen/güncellenen: {total_inserted}")
-        time.sleep(2)  # API rate limit için bekle
-    print(f"İlk 1000 popüler coin detayları güncellendi. Toplam: {total_inserted}")
+        logger.info(f"Total inserted/updated: {total_inserted}")
+        time.sleep(2)  # Wait for API rate limit
+    logger.info(f"First 1000 popular coin details updated. Total: {total_inserted}")
 
 def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
     """
-    Binance API'dan geçmiş fiyat verisi (OHLC) çekip market_data'ya kaydeder.
-    symbol: Binance sembolü (örn: BTCUSDT)
-    interval: Zaman aralığı (örn: 1d, 4h, 1h)
-    limit: Kaç veri çekilecek (maks 1000)
+    Fetches historical price data (OHLC) from Binance API and saves to market_data.
+    symbol: Binance symbol (e.g., BTCUSDT)
+    interval: Time interval (e.g., 1d, 4h, 1h)
+    limit: Number of data points to fetch (max 1000)
     """
     url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
     response = requests.get(url)
     if response.status_code != 200:
-        print(f"Binance kline API hatası: {response.status_code}")
+        logger.error(f"Binance kline API error: {response.status_code}")
         return
     data = response.json()
     if not data:
-        print(f"Veri yok: {symbol}")
+        logger.warning(f"No data: {symbol}")
         return
-    # Her satırı dict'e çevir
+    # Convert each row to dict
     from datetime import datetime as dt
     records = []
     for row in data:
-        # Timestamp milisaniye cinsinden, ISO formatına çevir
+        # Timestamp is in milliseconds, convert to ISO format
         timestamp_ms = row[0]
         timestamp_iso = dt.utcfromtimestamp(timestamp_ms / 1000).isoformat() + 'Z'
         records.append({
@@ -316,22 +321,22 @@ def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
             "high": float(row[2]),
             "low": float(row[3]),
             "close": float(row[4]),
-            "price": float(row[4]),  # Frontend için "price" alanı (close fiyatı)
+            "price": float(row[4]),  # "price" field for frontend (close price)
             "volume": float(row[5])
         })
-    # MongoDB'ye kaydet
+    # Save to MongoDB
     client = pymongo.MongoClient(MONGO_URI)
     db_ = client[DB_NAME]
     market_collection = db_["market_data"]
     market_collection.delete_many({"coin_id": symbol})
-    # Ek olarak, mapping varsa frontend id'siyle de kaydet
+    # Also save with frontend id if mapping exists
     frontend_id = BINANCE_TO_ID.get(symbol)
     if frontend_id:
         market_collection.delete_many({"coin_id": frontend_id})
     if records:
         market_collection.insert_many(records)
-        print(f"{symbol} için {len(records)} OHLC veri kaydedildi.")
-        # Frontend id ile de kopya kaydet (aynı _id çakışmasını önlemek için _id kaldır)
+        logger.info(f"{len(records)} OHLC data saved for {symbol}.")
+        # Also save copy with frontend id (remove _id to avoid conflicts)
         if frontend_id:
             mapped = []
             for r in records:
@@ -341,14 +346,14 @@ def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
                 mapped.append(r2)
             if mapped:
                 market_collection.insert_many(mapped)
-                print(f"Ek olarak {frontend_id} id ile de {len(mapped)} veri kaydedildi.")
+                logger.info(f"Additionally saved {len(mapped)} data with id {frontend_id}.")
     else:
-        print(f"{symbol} için veri yok.")
+        logger.warning(f"No data for {symbol}.")
 
 def main():
     while True:
         update_all_coins()
-        print("1 dakika bekleniyor...")
+        logger.info("Waiting 1 minute...")
         time.sleep(60)
 
 if __name__ == "__main__":

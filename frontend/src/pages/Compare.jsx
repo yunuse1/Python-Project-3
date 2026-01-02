@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import API_BASE from '../config';
-// Standart ve temiz import
+// Standard and clean import
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function Compare() {
   const [coin1, setCoin1] = useState('bitcoin');
   const [coin2, setCoin2] = useState('ethereum');
   // Prevent same coin selection
-  // Sadece iki farklı coin seçiliyse fetch et
+  // Only fetch if two different coins are selected
   useEffect(() => {
     if (coin1 === coin2) return;
-    // ...fetch işlemleri useEffect içinde zaten var...
+    // ...fetch operations are already in useEffect...
   }, [coin1, coin2]);
   const [data1, setData1] = useState([]);
   const [data2, setData2] = useState([]);
@@ -88,17 +88,17 @@ function Compare() {
       .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp))
       .filter(d => (d.price1 !== null) || (d.price2 !== null));
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('tr-TR', {month:'short', day:'numeric'});
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', {month:'short', day:'numeric'});
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 text-white">
       <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-          Kripto Karşılaştırma Analizi
+          Crypto Comparison Analysis
       </h1>
 
       <div className="flex justify-center gap-8 mb-10">
           <div className="flex flex-col">
-              <label className="mb-2 text-blue-400 font-bold">1. Coin</label>
+              <label className="mb-2 text-blue-400 font-bold">1st Coin</label>
               <select 
                 value={coin1} 
                 onChange={(e) => setCoin1(e.target.value)}
@@ -113,7 +113,7 @@ function Compare() {
           </div>
 
           <div className="flex flex-col">
-              <label className="mb-2 text-purple-400 font-bold">2. Coin</label>
+              <label className="mb-2 text-purple-400 font-bold">2nd Coin</label>
               <select 
                 value={coin2} 
                 onChange={(e) => setCoin2(e.target.value)}
@@ -124,12 +124,54 @@ function Compare() {
           </div>
       </div>
 
-      {/* Debug: seçili coinler ve analysis objesi */}
-      <div className="text-xs text-slate-400 mb-2 text-center">Seçili: {coin1} vs {coin2}</div>
+      {/* Debug: selected coins and analysis object */}
+      <div className="text-xs text-slate-400 mb-2 text-center">Selected: {coin1} vs {coin2}</div>
+      
+      {/* Date range overlap warning */}
+      {analysis && analysis.coins && analysis.coins[coin1] && analysis.coins[coin2] && coin1 !== coin2 && (() => {
+        const s1 = analysis.coins[coin1].series || [];
+        const s2 = analysis.coins[coin2].series || [];
+        if (s1.length === 0 || s2.length === 0) return null;
+        
+        const start1 = new Date(s1[0].timestamp);
+        const end1 = new Date(s1[s1.length - 1].timestamp);
+        const start2 = new Date(s2[0].timestamp);
+        const end2 = new Date(s2[s2.length - 1].timestamp);
+        
+        // Check if date ranges overlap
+        const overlapStart = Math.max(start1.getTime(), start2.getTime());
+        const overlapEnd = Math.min(end1.getTime(), end2.getTime());
+        const hasOverlap = overlapStart <= overlapEnd;
+        
+        const formatRange = (start, end) => {
+          return `${start.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})} - ${end.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+        };
+        
+        if (!hasOverlap) {
+          return (
+            <div className="max-w-3xl mx-auto mb-6 p-4 bg-yellow-900/30 border border-yellow-600 rounded-lg">
+              <p className="text-yellow-400 font-bold mb-2">⚠️ Date Range Mismatch</p>
+              <p className="text-yellow-200 text-sm">
+                These coins have no overlapping data period. Comparison may not be meaningful.
+              </p>
+              <div className="mt-2 text-xs text-yellow-300 grid grid-cols-2 gap-4">
+                <div>
+                  <span className="font-bold text-blue-400">{coin1.toUpperCase()}</span>: {formatRange(start1, end1)}
+                </div>
+                <div>
+                  <span className="font-bold text-purple-400">{coin2.toUpperCase()}</span>: {formatRange(start2, end2)}
+                </div>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
+      
       {analysis && analysis.ranking && coin1 !== coin2 && (
         <div className="max-w-3xl mx-auto mb-6 text-center text-slate-300">
-          <strong>{analysis.ranking[0].coin.toUpperCase()}</strong> bu periyot içinde en iyi performansı gösteriyor ({analysis.ranking[0].percent_change.toFixed(2)}%).{' '}
-          <span className="text-slate-500">{analysis.ranking.length > 1 ? `${analysis.ranking[1].coin.toUpperCase()} ise ${analysis.ranking[1].percent_change.toFixed(2)}%` : ''}</span>
+          <strong>{analysis.ranking[0].coin.toUpperCase()}</strong> shows the best performance in this period ({analysis.ranking[0].percent_change.toFixed(2)}%).{' '}
+          <span className="text-slate-500">{analysis.ranking.length > 1 ? `${analysis.ranking[1].coin.toUpperCase()} shows ${analysis.ranking[1].percent_change.toFixed(2)}%` : ''}</span>
         </div>
       )}
 
@@ -151,7 +193,7 @@ function Compare() {
                 };
               }).filter(d => d.price1 !== null || d.price2 !== null);
               if (merged.length === 0) {
-                return <div className="text-center text-red-400 pt-20">Karşılaştırma için yeterli veri yok.</div>;
+                return <div className="text-center text-red-400 pt-20">Not enough data for comparison.</div>;
               }
               
               // Format price for axis
@@ -159,6 +201,23 @@ function Compare() {
                 if (value >= 1000) return `$${(value/1000).toFixed(0)}K`;
                 if (value >= 1) return `$${value.toFixed(0)}`;
                 return `$${value.toFixed(4)}`;
+              };
+
+              // Custom tooltip to show both coins
+              const CustomTooltip = ({ active, payload, label }) => {
+                if (active && payload && payload.length > 0) {
+                  return (
+                    <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl">
+                      <p className="text-slate-400 text-sm mb-2">{formatDate(label)}</p>
+                      {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }} className="font-bold">
+                          {entry.name}: {entry.value !== null ? `$${entry.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}` : '-'}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
               };
               
               return (
@@ -177,15 +236,7 @@ function Compare() {
                     tickFormatter={formatPrice}
                     orientation="right"
                   />
-                  <Tooltip 
-                    labelFormatter={formatDate} 
-                    contentStyle={{backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px'}} 
-                    formatter={(value, name) => {
-                      if (value === null) return ['-', name];
-                      const priceStr = `$${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                      return [priceStr, name];
-                    }} 
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
                   <Line yAxisId="left" type="monotone" dataKey="price1" name={coin1.toUpperCase()} stroke="#3b82f6" strokeWidth={3} dot={false} connectNulls />
                   <Line yAxisId="right" type="monotone" dataKey="price2" name={coin2.toUpperCase()} stroke="#a855f7" strokeWidth={3} dot={false} connectNulls />
@@ -193,7 +244,7 @@ function Compare() {
               );
             })()
           ) : (
-            <div className="text-center text-red-400 pt-20">Karşılaştırma için yeterli veri yok.</div>
+            <div className="text-center text-red-400 pt-20">Not enough data for comparison.</div>
           )}
         </ResponsiveContainer>
       </div>

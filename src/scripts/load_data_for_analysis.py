@@ -10,7 +10,7 @@ if ROOT_SRC not in sys.path:
 import pymongo
 import pandas as pd
 
-# Docker ortamında 'mongo', lokalde 'localhost' kullanılır
+# Use 'mongo' in Docker environment, 'localhost' locally
 MONGO_HOST = os.environ.get('MONGO_HOST', 'localhost')
 MONGO_URI = f'mongodb://{MONGO_HOST}:27017/'
 DB_NAME = os.environ.get('DB_NAME', 'crypto_project_db')

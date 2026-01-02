@@ -4,10 +4,15 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import pandas as pd
 import numpy as np
+import logging
 from flask_cors import CORS
 from db import database_manager as db
 from analysis_engine import CryptoAnalysisEngine
 import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -22,21 +27,20 @@ CACHE_TTL = 300  # 5 minutes
 
 @app.route('/api/all-coins', methods=['GET'])
 def get_all_coins():
-    """Tüm coinlerin detaylı verisini MongoDB'den döner."""
+    """Returns detailed data for all coins from MongoDB."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["all_coins_details"]
         coins = list(collection.find({}, {"_id": 0}))
         return jsonify(coins)
     except Exception as e:
-        tb = traceback.format_exc()
-        print(tb)
-        return jsonify({"error": str(e), "traceback": tb}), 500
+        logger.error(f"Error fetching all coins: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/popular-coins', methods=['GET'])
 def get_popular_coins():
-    """Popüler coinlerin özet verisini MongoDB'den döner."""
+    """Returns summary data for popular coins from MongoDB."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["popular_coins"]
@@ -184,7 +188,7 @@ def fetch_market_coins_list():
         client = db.client
         market_coll = client["crypto_project_db"]["market_data"]
         
-        # Use aggregation to get distinct coins with their latest prices in ONE query
+        # Use aggregation to get distinct coins with their latest 2 prices for daily change
         pipeline = [
             # Filter out trading pairs (BTCUSDT, etc.)
             {'$match': {
@@ -192,10 +196,16 @@ def fetch_market_coins_list():
             }},
             # Sort by timestamp descending to get latest first
             {'$sort': {'timestamp': -1}},
-            # Group by coin_id and get first (latest) document
+            # Group by coin_id and get first 2 prices
             {'$group': {
                 '_id': '$coin_id',
-                'current_price': {'$first': {'$ifNull': ['$close', {'$ifNull': ['$c', '$price']}]}}
+                'prices': {'$push': {'$ifNull': ['$close', {'$ifNull': ['$c', '$price']}]}},
+            }},
+            # Add fields for current price and previous price
+            {'$project': {
+                '_id': 1,
+                'current_price': {'$arrayElemAt': ['$prices', 0]},
+                'previous_price': {'$arrayElemAt': ['$prices', 1]}
             }}
         ]
         
@@ -208,6 +218,14 @@ def fetch_market_coins_list():
             if not coin_id:
                 continue
             
+            current_price = doc.get('current_price')
+            previous_price = doc.get('previous_price')
+            
+            # Calculate 24h change percentage
+            price_change_24h = None
+            if current_price and previous_price and previous_price != 0:
+                price_change_24h = ((current_price - previous_price) / previous_price) * 100
+            
             # Get symbol for display
             symbol = COIN_SYMBOLS.get(coin_id, coin_id[:3].upper())
             # Use CoinCap API for coin images
@@ -217,7 +235,8 @@ def fetch_market_coins_list():
                 'id': coin_id,
                 'name': coin_id.replace('-', ' ').title(),
                 'symbol': symbol,
-                'current_price': doc.get('current_price'),
+                'current_price': current_price,
+                'price_change_24h': price_change_24h,
                 'image': image_url
             })
         
@@ -225,8 +244,9 @@ def fetch_market_coins_list():
         result.sort(key=lambda x: x['name'])
         return result
     except Exception as e:
-        print(f"fetch_market_coins_list error: {e}")
+        logger.error(f"fetch_market_coins_list error: {e}")
         return []
+
 
 @app.route('/api/market-coins', methods=['GET'])
 def get_market_coins():
@@ -361,8 +381,8 @@ def get_indexed_series():
 @app.route('/api/analysis/<coin_id>', methods=['GET'])
 def get_coin_analysis(coin_id):
     """
-    Bir coin için detaylı teknik analiz ve risk metrikleri döner.
-    RSI, MACD, Bollinger Bands, Volatilite, Sharpe Ratio, Trend analizi
+    Returns detailed technical analysis and risk metrics for a coin.
+    RSI, MACD, Bollinger Bands, Volatility, Sharpe Ratio, Trend analysis
     """
     try:
         df = db.get_market_data(coin_id)
@@ -386,10 +406,10 @@ def get_coin_analysis(coin_id):
         # Full analysis
         analysis = analysis_engine.get_full_analysis(df, column='price')
         
-        # DataFrame'i çıkar (JSON'a çevrilemez)
+        # Remove DataFrame (cannot be converted to JSON)
         analysis_df = analysis.pop('dataframe')
         
-        # NaN değerleri None'a çevir
+        # Convert NaN values to None
         def clean_value(v):
             if isinstance(v, float) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -405,7 +425,7 @@ def get_coin_analysis(coin_id):
         
         analysis = clean_dict(analysis)
         
-        # Son 30 günlük veri serisi (grafik için)
+        # Last 30 days data series (for chart)
         recent_df = analysis_df.tail(30).copy()
         series_data = []
         for _, row in recent_df.iterrows():
@@ -438,49 +458,48 @@ def get_coin_analysis(coin_id):
         return jsonify(analysis)
         
     except Exception as e:
-        tb = traceback.format_exc()
-        print(tb)
-        return jsonify({"error": str(e), "traceback": tb}), 500
+        logger.error(f"Error in coin analysis: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/user-analysis/<username>', methods=['GET'])
 def get_user_performance(username):
     """
-    Belirli bir kullanıcının portföy performansını 
-    güncel piyasa fiyatlarıyla analiz eder.
+    Analyzes a specific user's portfolio performance
+    with current market prices.
     """
     try:
-        # 1. Kullanıcıyı MongoDB'den bul
+        # 1. Find user in MongoDB
         user = db.users_collection.find_one({"username": username}, {"_id": 0})
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # 2. Kullanıcının elindeki coinler için güncel fiyatları topla
-        # Not: Basitlik adına her coin için market_data'daki en son kaydı alıyoruz
+        # 2. Get current prices for user's coins
+        # Note: For simplicity, we get the latest record from market_data for each coin
         current_prices = {}
         unique_coins = set(trade['coin'] for trade in user.get('trades', []))
         
         for coin_id in unique_coins:
             coin_df = db.get_market_data(coin_id)
             if not coin_df.empty:
-                # En son (güncel) fiyatı alıyoruz
+                # Get the most recent (current) price
                 current_prices[coin_id] = float(coin_df.iloc[-1]['price'])
             else:
-                # Veri yoksa alış fiyatını varsayılan olarak kullan (PNL 0 çıkar)
+                # If no data, use buy price as default (PNL will be 0)
                 current_prices[coin_id] = 0
 
-        # 3. Analiz motorunu çalıştır
+        # 3. Run the analysis engine
         performance_report = analysis_engine.analyze_user_performance(user, current_prices)
 
         return jsonify(performance_report)
 
     except Exception as e:
-        print(traceback.format_exc())
+        logger.error(f"Error in user analysis: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/correlation', methods=['GET'])
 def get_correlation():
     """
-    Birden fazla coin için korelasyon matrisi döner.
+    Returns correlation matrix for multiple coins.
     Query params: coins=bitcoin,ethereum,solana
     """
     try:
@@ -507,7 +526,7 @@ def get_correlation():
         
         correlation = analysis_engine.calculate_correlation_matrix(coin_dfs)
         
-        # NaN değerleri temizle
+        # Clean NaN values
         def clean_corr(d):
             if isinstance(d, dict):
                 return {k: clean_corr(v) for k, v in d.items()}
@@ -527,8 +546,8 @@ def get_correlation():
 @app.route('/api/anomalies/<coin_id>', methods=['GET'])
 def get_coin_anomalies(coin_id):
     """
-    Coin için anomali tespiti ve özet istatistikleri döner.
-    Z-Score, IQR ve Rolling window metodları kullanılır.
+    Returns anomaly detection and summary statistics for a coin.
+    Uses Z-Score, IQR and Rolling window methods.
     """
     try:
         df = db.get_market_data(coin_id)
@@ -549,13 +568,13 @@ def get_coin_anomalies(coin_id):
         if len(df) < 10:
             return jsonify({"error": "Insufficient data for anomaly detection"}), 400
         
-        # Anomali analizi
+        # Anomaly analysis
         anomaly_result = analysis_engine.get_anomaly_summary(df, column='price')
         
-        # DataFrame'i çıkar
+        # Remove DataFrame
         anomaly_df = anomaly_result.pop('dataframe')
         
-        # NaN değerleri temizle
+        # Clean NaN values
         def clean_value(v):
             if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -575,7 +594,7 @@ def get_coin_anomalies(coin_id):
         
         anomaly_result = clean_dict(anomaly_result)
         
-        # Son 30 günlük anomali verisi (grafik için)
+        # Last 30 days anomaly data (for chart)
         recent_df = anomaly_df.tail(30).copy()
         series_data = []
         for _, row in recent_df.iterrows():
@@ -601,19 +620,18 @@ def get_coin_anomalies(coin_id):
         return jsonify(anomaly_result)
         
     except Exception as e:
-        tb = traceback.format_exc()
-        print(tb)
+        logger.error(f"Error in anomaly detection: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/forecast/<coin_id>', methods=['GET'])
 def get_coin_forecast(coin_id):
     try:
-        # MongoDB'den geçmiş veriyi çek
+        # Get historical data from MongoDB
         df = db.get_market_data(coin_id)
         if df.empty:
-            return jsonify({"error": "Veri bulunamadı"}), 404
+            return jsonify({"error": "Data not found"}), 404
         
-        # Tahmini hesapla
+        # Calculate forecast
         forecast = analysis_engine.predict_future_price(df)
         return jsonify({
             "coin": coin_id,
@@ -628,7 +646,7 @@ def get_exchange_overview():
     try:
         users = list(db.users_collection.find({}, {"_id": 0}))
         
-        # Tüm portföylerdeki benzersiz coinleri bul ve güncel fiyatlarını çek
+        # Find unique coins in all portfolios and get their current prices
         unique_coins = {t['coin'] for u in users for t in u.get('trades', [])}
         current_prices = {}
         for c in unique_coins:
@@ -644,7 +662,7 @@ def get_exchange_overview():
 @app.route('/api/report/<coin_id>', methods=['GET'])
 def get_scientific_report(coin_id):
     """
-    Coin için kapsamlı bilimsel rapor döner.
+    Returns comprehensive scientific report for a coin.
     Descriptive statistics, returns analysis, risk analysis, anomaly detection
     """
     try:
@@ -666,16 +684,16 @@ def get_scientific_report(coin_id):
         if len(df) < 30:
             return jsonify({"error": "Insufficient data for scientific report"}), 400
         
-        # Coin adını al
+        # Get coin name
         client = db.client
         details_coll = client["crypto_project_db"]["all_coins_details"]
         coin_info = details_coll.find_one({"id": coin_id}, {"_id": 0, "name": 1})
         coin_name = coin_info.get('name', coin_id) if coin_info else coin_id
         
-        # Bilimsel rapor oluştur
+        # Generate scientific report
         report = analysis_engine.generate_scientific_report(df, column='price', coin_name=coin_name)
         
-        # NaN değerleri temizle
+        # Clean NaN values
         def clean_value(v):
             if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -699,17 +717,16 @@ def get_scientific_report(coin_id):
         return jsonify(report)
         
     except Exception as e:
-        tb = traceback.format_exc()
-        print(tb)
+        logger.error(f"Error generating report: {e}")
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
     try:
         db.initialize_database() 
-        print("✅ Veritabanı başlangıç ayarları yapıldı.")
+        logger.info("Database initialization complete.")
     except Exception as e:
-        print(f"❌ Veritabanı başlatılamadı: {e}")
+        logger.error(f"Database initialization failed: {e}")
     # Run the application on port 5000 in debug mode
     # host='0.0.0.0' is required for Docker to expose the port externally
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -13,22 +13,22 @@ function Navbar() {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               <Link to="/" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Ana Sayfa
+                Home
               </Link>
               <Link to="/compare" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Karşılaştırma
+                Compare
               </Link>
               <Link to="/analysis" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Teknik Analiz
+                Technical Analysis
               </Link>
               <Link to="/report" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Bilimsel Rapor
+                Scientific Report
               </Link>
               <Link to="/charts" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Seaborn Grafikleri
+                Seaborn Charts
               </Link>
               <Link to="/investors" className="text-gray-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-all">
-                Yatırımcı Analizi
+                Investor Analysis
               </Link>
             </div>
           </div>

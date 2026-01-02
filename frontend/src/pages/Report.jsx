@@ -29,7 +29,7 @@ function Report() {
         setReport(reportRes.data);
         setAnomalies(anomalyRes.data);
       } catch (err) {
-        setError(err.response?.data?.error || 'Rapor yüklenemedi');
+        setError(err.response?.data?.error || 'Report could not be loaded');
         setReport(null);
         setAnomalies(null);
       } finally {
@@ -53,7 +53,7 @@ function Report() {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const getColorByValue = (value, threshold = 0) => {
@@ -65,7 +65,7 @@ function Report() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-10 text-white">
-        <div className="text-center animate-pulse">Bilimsel rapor hazırlanıyor...</div>
+        <div className="text-center animate-pulse">Preparing scientific report...</div>
       </div>
     );
   }
@@ -73,10 +73,10 @@ function Report() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 text-white">
       <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
-        📊 Bilimsel Analiz Raporu
+        📊 Scientific Analysis Report
       </h1>
 
-      {/* Coin Seçimi */}
+      {/* Coin Selection */}
       <div className="flex justify-center mb-8">
         <select
           value={coin}
@@ -93,24 +93,24 @@ function Report() {
 
       {report && (
         <>
-          {/* Analiz Dönemi */}
+          {/* Analysis Period */}
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-8 text-center">
-            <span className="text-slate-400">Analiz Dönemi: </span>
+            <span className="text-slate-400">Analysis Period: </span>
             <span className="text-white font-mono">
               {report.analysis_period?.start?.split('T')[0]} → {report.analysis_period?.end?.split('T')[0]}
             </span>
-            <span className="text-slate-400 ml-4">({report.analysis_period?.total_days} gün)</span>
+            <span className="text-slate-400 ml-4">({report.analysis_period?.total_days} days)</span>
           </div>
 
-          {/* Tanımlayıcı İstatistikler */}
+          {/* Descriptive Statistics */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-            <h2 className="text-xl font-bold mb-4 text-slate-300">📈 Tanımlayıcı İstatistikler</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-300">📈 Descriptive Statistics</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <StatCard label="Ortalama" value={`$${formatNumber(report.descriptive_statistics?.mean)}`} />
-              <StatCard label="Std Sapma" value={`$${formatNumber(report.descriptive_statistics?.std)}`} />
+              <StatCard label="Mean" value={`$${formatNumber(report.descriptive_statistics?.mean)}`} />
+              <StatCard label="Std Dev" value={`$${formatNumber(report.descriptive_statistics?.std)}`} />
               <StatCard label="Min" value={`$${formatNumber(report.descriptive_statistics?.min)}`} color="text-red-400" />
               <StatCard label="Max" value={`$${formatNumber(report.descriptive_statistics?.max)}`} color="text-green-400" />
-              <StatCard label="Medyan" value={`$${formatNumber(report.descriptive_statistics?.median)}`} />
+              <StatCard label="Median" value={`$${formatNumber(report.descriptive_statistics?.median)}`} />
               <StatCard label="IQR" value={`$${formatNumber(report.descriptive_statistics?.iqr)}`} />
               <StatCard label="Q1 (25%)" value={`$${formatNumber(report.descriptive_statistics?.q1)}`} />
               <StatCard label="Q3 (75%)" value={`$${formatNumber(report.descriptive_statistics?.q3)}`} />
@@ -121,63 +121,63 @@ function Report() {
             </div>
           </div>
 
-          {/* Getiri Analizi */}
+          {/* Returns Analysis */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-            <h2 className="text-xl font-bold mb-4 text-slate-300">💰 Getiri Analizi</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-300">💰 Returns Analysis</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard 
-                label="Kümülatif Getiri" 
+                label="Cumulative Return" 
                 value={formatPercent(report.returns_analysis?.cumulative_return)} 
                 color={getColorByValue(report.returns_analysis?.cumulative_return)}
               />
               <StatCard 
-                label="Yıllık Getiri" 
+                label="Annualized Return" 
                 value={formatPercent(report.returns_analysis?.annualized_return)} 
                 color={getColorByValue(report.returns_analysis?.annualized_return)}
               />
               <StatCard 
-                label="Yıllık Volatilite" 
+                label="Annualized Volatility" 
                 value={formatPercent(report.returns_analysis?.annualized_volatility)} 
                 color="text-purple-400"
               />
               <StatCard 
-                label="Kazanma Oranı" 
+                label="Win Rate" 
                 value={`${report.returns_analysis?.daily_returns?.win_rate?.toFixed(1)}%`} 
                 color={getColorByValue(report.returns_analysis?.daily_returns?.win_rate, 50)}
               />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              <StatCard label="Günlük Ort. Getiri" value={formatPercent(report.returns_analysis?.daily_returns?.mean)} />
-              <StatCard label="Günlük Volatilite" value={formatPercent(report.returns_analysis?.daily_returns?.std)} />
-              <StatCard label="Pozitif Günler" value={report.returns_analysis?.daily_returns?.positive_days} color="text-green-400" />
-              <StatCard label="Negatif Günler" value={report.returns_analysis?.daily_returns?.negative_days} color="text-red-400" />
+              <StatCard label="Daily Avg Return" value={formatPercent(report.returns_analysis?.daily_returns?.mean)} />
+              <StatCard label="Daily Volatility" value={formatPercent(report.returns_analysis?.daily_returns?.std)} />
+              <StatCard label="Positive Days" value={report.returns_analysis?.daily_returns?.positive_days} color="text-green-400" />
+              <StatCard label="Negative Days" value={report.returns_analysis?.daily_returns?.negative_days} color="text-red-400" />
             </div>
           </div>
 
-          {/* Risk Analizi */}
+          {/* Risk Analysis */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-            <h2 className="text-xl font-bold mb-4 text-slate-300">⚠️ Risk Analizi</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-300">⚠️ Risk Analysis</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard 
                 label="VaR (95%)" 
                 value={formatPercent(report.risk_analysis?.var_historic_95)} 
                 color="text-red-400"
-                subtitle="1 günlük kayıp riski"
+                subtitle="1-day loss risk"
               />
               <StatCard 
                 label="CVaR / ES" 
                 value={formatPercent(report.risk_analysis?.cvar_95)} 
                 color="text-red-400"
-                subtitle="Beklenen kayıp"
+                subtitle="Expected shortfall"
               />
               <StatCard 
                 label="Max Drawdown" 
                 value={formatPercent(report.risk_analysis?.max_drawdown)} 
                 color="text-red-400"
-                subtitle="En büyük düşüş"
+                subtitle="Largest decline"
               />
               <StatCard 
-                label="VaR Parametrik" 
+                label="VaR Parametric" 
                 value={formatPercent(report.risk_analysis?.var_parametric_95)} 
                 color="text-orange-400"
               />
@@ -190,18 +190,18 @@ function Report() {
             )}
           </div>
 
-          {/* Anomali Tespiti */}
+          {/* Anomaly Detection */}
           {anomalies && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-              <h2 className="text-xl font-bold mb-4 text-slate-300">🔍 Anomali Tespiti</h2>
+              <h2 className="text-xl font-bold mb-4 text-slate-300">🔍 Anomaly Detection</h2>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <StatCard 
-                  label="Toplam Anomali" 
+                  label="Total Anomalies" 
                   value={anomalies.anomaly_counts?.any_method} 
                   color="text-yellow-400"
                 />
                 <StatCard 
-                  label="Anomali Oranı" 
+                  label="Anomaly Rate" 
                   value={`${anomalies.anomaly_percentage}%`} 
                   color="text-yellow-400"
                 />
@@ -222,7 +222,7 @@ function Report() {
                 />
               </div>
 
-              {/* Anomali Grafiği */}
+              {/* Anomaly Chart */}
               {anomalies.series && anomalies.series.length > 0 && (
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -236,7 +236,7 @@ function Report() {
                         contentStyle={{backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px'}}
                       />
                       <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} name="Fiyat" dot={false} />
+                      <Line yAxisId="left" type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} name="Price" dot={false} />
                       <Line yAxisId="right" type="monotone" dataKey="zscore" stroke="#a855f7" strokeWidth={1} name="Z-Score" dot={false} />
                       <ReferenceLine yAxisId="right" y={3} stroke="#ef4444" strokeDasharray="3 3" />
                       <ReferenceLine yAxisId="right" y={-3} stroke="#ef4444" strokeDasharray="3 3" />
@@ -247,52 +247,52 @@ function Report() {
             </div>
           )}
 
-          {/* Trend Dağılımı */}
+          {/* Trend Distribution */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-            <h2 className="text-xl font-bold mb-4 text-slate-300">📊 Trend Dağılımı</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-300">📊 Trend Distribution</h2>
             <div className="grid grid-cols-3 gap-4">
               <StatCard 
-                label="Yükseliş (Bullish)" 
+                label="Bullish" 
                 value={report.trend_analysis?.trend_distribution?.bullish || 0} 
                 color="text-green-400"
-                subtitle="gün"
+                subtitle="days"
               />
               <StatCard 
-                label="Düşüş (Bearish)" 
+                label="Bearish" 
                 value={report.trend_analysis?.trend_distribution?.bearish || 0} 
                 color="text-red-400"
-                subtitle="gün"
+                subtitle="days"
               />
               <StatCard 
-                label="Nötr" 
+                label="Neutral" 
                 value={report.trend_analysis?.trend_distribution?.neutral || 0} 
                 color="text-gray-400"
-                subtitle="gün"
+                subtitle="days"
               />
             </div>
             <div className="mt-4 text-center">
-              <span className="text-slate-400">Güncel Trend: </span>
+              <span className="text-slate-400">Current Trend: </span>
               <span className={`font-bold ${
                 report.trend_analysis?.current_trend === 'bullish' ? 'text-green-400' :
                 report.trend_analysis?.current_trend === 'bearish' ? 'text-red-400' : 'text-gray-400'
               }`}>
-                {report.trend_analysis?.current_trend === 'bullish' ? '📈 YÜKSELİŞ' :
-                 report.trend_analysis?.current_trend === 'bearish' ? '📉 DÜŞÜŞ' : '➡️ NÖTR'}
+                {report.trend_analysis?.current_trend === 'bullish' ? '📈 BULLISH' :
+                 report.trend_analysis?.current_trend === 'bearish' ? '📉 BEARISH' : '➡️ NEUTRAL'}
               </span>
             </div>
           </div>
 
-          {/* Veri Kalitesi */}
+          {/* Data Quality */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl">
-            <h2 className="text-xl font-bold mb-4 text-slate-300">✅ Veri Kalitesi</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-300">✅ Data Quality</h2>
             <div className="grid grid-cols-2 gap-4">
               <StatCard 
-                label="Eksik Veri" 
+                label="Missing Data" 
                 value={report.data_quality?.missing_values || 0} 
                 color={report.data_quality?.missing_values > 0 ? 'text-red-400' : 'text-green-400'}
               />
               <StatCard 
-                label="Veri Tamlığı" 
+                label="Data Completeness" 
                 value={`${report.data_quality?.data_completeness?.toFixed(1)}%`} 
                 color="text-green-400"
               />

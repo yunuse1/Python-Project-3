@@ -24,7 +24,7 @@ function Analysis() {
         const res = await axios.get(`${API_BASE}/api/analysis/${coin}`);
         setAnalysis(res.data);
       } catch (err) {
-        setError(err.response?.data?.error || 'Analiz yüklenemedi');
+        setError(err.response?.data?.error || 'Analysis could not be loaded');
         setAnalysis(null);
       } finally {
         setLoading(false);
@@ -35,7 +35,7 @@ function Analysis() {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatPrice = (value) => {
@@ -69,7 +69,7 @@ function Analysis() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-10 text-white">
-        <div className="text-center animate-pulse">Analiz yükleniyor...</div>
+        <div className="text-center animate-pulse">Loading analysis...</div>
       </div>
     );
   }
@@ -77,10 +77,10 @@ function Analysis() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 text-white">
       <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
-        Teknik Analiz Dashboard
+        Technical Analysis Dashboard
       </h1>
 
-      {/* Coin Seçimi */}
+      {/* Coin Selection */}
       <div className="flex justify-center mb-8">
         <select
           value={coin}
@@ -97,11 +97,11 @@ function Analysis() {
 
       {analysis && (
         <>
-          {/* Özet Kartlar */}
+          {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {/* Fiyat */}
+            {/* Price */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-              <div className="text-slate-400 text-sm">Güncel Fiyat</div>
+              <div className="text-slate-400 text-sm">Current Price</div>
               <div className="text-2xl font-bold text-white">
                 {formatPrice(analysis.current_price)}
               </div>
@@ -114,9 +114,9 @@ function Analysis() {
                 {analysis.indicators?.rsi?.toFixed(1) || '-'}
               </div>
               <div className="text-xs text-slate-500">
-                {analysis.indicators?.rsi_signal === 'overbought' && '⚠️ Aşırı Alım'}
-                {analysis.indicators?.rsi_signal === 'oversold' && '✅ Aşırı Satım'}
-                {analysis.indicators?.rsi_signal === 'neutral' && 'Nötr'}
+                {analysis.indicators?.rsi_signal === 'overbought' && '⚠️ Overbought'}
+                {analysis.indicators?.rsi_signal === 'oversold' && '✅ Oversold'}
+                {analysis.indicators?.rsi_signal === 'neutral' && 'Neutral'}
               </div>
             </div>
 
@@ -128,22 +128,22 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Volatilite */}
+            {/* Volatility */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-              <div className="text-slate-400 text-sm">Volatilite (30g)</div>
+              <div className="text-slate-400 text-sm">Volatility (30d)</div>
               <div className="text-2xl font-bold text-purple-400">
                 {analysis.risk_metrics?.volatility_30d?.toFixed(1) || '-'}%
               </div>
             </div>
           </div>
 
-          {/* İkinci Satır Kartlar */}
+          {/* Second Row Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {/* MACD */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">MACD Trend</div>
               <div className={`text-xl font-bold ${analysis.indicators?.macd_trend === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
-                {analysis.indicators?.macd_trend === 'bullish' ? '📈 Yükseliş' : '📉 Düşüş'}
+                {analysis.indicators?.macd_trend === 'bullish' ? '📈 Bullish' : '📉 Bearish'}
               </div>
             </div>
 
@@ -165,26 +165,26 @@ function Analysis() {
 
             {/* Bollinger Position */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-              <div className="text-slate-400 text-sm">Bollinger Pozisyonu</div>
+              <div className="text-slate-400 text-sm">Bollinger Position</div>
               <div className="text-lg font-bold text-blue-400">
-                {analysis.indicators?.bb_position === 'above_upper' && '⬆️ Üst Bant Üstü'}
-                {analysis.indicators?.bb_position === 'below_lower' && '⬇️ Alt Bant Altı'}
-                {analysis.indicators?.bb_position === 'upper_half' && '↗️ Üst Yarı'}
-                {analysis.indicators?.bb_position === 'lower_half' && '↘️ Alt Yarı'}
+                {analysis.indicators?.bb_position === 'above_upper' && '⬆️ Above Upper Band'}
+                {analysis.indicators?.bb_position === 'below_lower' && '⬇️ Below Lower Band'}
+                {analysis.indicators?.bb_position === 'upper_half' && '↗️ Upper Half'}
+                {analysis.indicators?.bb_position === 'lower_half' && '↘️ Lower Half'}
               </div>
             </div>
           </div>
 
-          {/* Destek/Direnç Seviyeleri */}
+          {/* Support/Resistance Levels */}
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-8">
-            <h3 className="text-lg font-bold mb-3 text-slate-300">Destek & Direnç Seviyeleri</h3>
+            <h3 className="text-lg font-bold mb-3 text-slate-300">Support & Resistance Levels</h3>
             <div className="grid grid-cols-5 gap-4 text-center">
               <div>
-                <div className="text-xs text-slate-500">Direnç 1</div>
+                <div className="text-xs text-slate-500">Resistance 1</div>
                 <div className="text-red-400 font-mono">{formatPrice(analysis.levels?.r1)}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Direnç</div>
+                <div className="text-xs text-slate-500">Resistance</div>
                 <div className="text-orange-400 font-mono">{formatPrice(analysis.levels?.resistance)}</div>
               </div>
               <div>
@@ -192,20 +192,20 @@ function Analysis() {
                 <div className="text-yellow-400 font-mono">{formatPrice(analysis.levels?.pivot)}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Destek</div>
+                <div className="text-xs text-slate-500">Support</div>
                 <div className="text-green-400 font-mono">{formatPrice(analysis.levels?.support)}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Destek 1</div>
+                <div className="text-xs text-slate-500">Support 1</div>
                 <div className="text-emerald-400 font-mono">{formatPrice(analysis.levels?.s1)}</div>
               </div>
             </div>
           </div>
 
-          {/* Fiyat + Bollinger Bands Grafiği */}
+          {/* Price + Bollinger Bands Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
-              <h3 className="text-lg font-bold mb-4 text-slate-300">Fiyat & Bollinger Bands</h3>
+              <h3 className="text-lg font-bold mb-4 text-slate-300">Price & Bollinger Bands</h3>
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={analysis.series}>
@@ -218,10 +218,10 @@ function Analysis() {
                       formatter={(value, name) => [formatPrice(value), name]}
                     />
                     <Legend />
-                    <Area type="monotone" dataKey="bb_upper" stroke="#6366f1" fill="#6366f130" name="BB Üst" />
-                    <Area type="monotone" dataKey="bb_lower" stroke="#6366f1" fill="#6366f130" name="BB Alt" />
-                    <Line type="monotone" dataKey="bb_middle" stroke="#6366f1" strokeDasharray="5 5" name="BB Orta" dot={false} />
-                    <Line type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} name="Fiyat" dot={false} />
+                    <Area type="monotone" dataKey="bb_upper" stroke="#6366f1" fill="#6366f130" name="BB Upper" />
+                    <Area type="monotone" dataKey="bb_lower" stroke="#6366f1" fill="#6366f130" name="BB Lower" />
+                    <Line type="monotone" dataKey="bb_middle" stroke="#6366f1" strokeDasharray="5 5" name="BB Middle" dot={false} />
+                    <Line type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} name="Price" dot={false} />
                     <Line type="monotone" dataKey="sma_7" stroke="#10b981" strokeWidth={1} name="SMA 7" dot={false} />
                     <Line type="monotone" dataKey="sma_30" stroke="#ef4444" strokeWidth={1} name="SMA 30" dot={false} />
                   </AreaChart>
@@ -230,7 +230,7 @@ function Analysis() {
             </div>
           )}
 
-          {/* RSI Grafiği */}
+          {/* RSI Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
               <h3 className="text-lg font-bold mb-4 text-slate-300">RSI (Relative Strength Index)</h3>
@@ -244,8 +244,8 @@ function Analysis() {
                       labelFormatter={formatDate}
                       contentStyle={{backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px'}}
                     />
-                    <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Aşırı Alım', fill: '#ef4444', fontSize: 12 }} />
-                    <ReferenceLine y={30} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Aşırı Satım', fill: '#10b981', fontSize: 12 }} />
+                    <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Overbought', fill: '#ef4444', fontSize: 12 }} />
+                    <ReferenceLine y={30} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Oversold', fill: '#10b981', fontSize: 12 }} />
                     <Line type="monotone" dataKey="rsi" stroke="#a855f7" strokeWidth={2} name="RSI" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -253,7 +253,7 @@ function Analysis() {
             </div>
           )}
 
-          {/* MACD Grafiği */}
+          {/* MACD Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl">
               <h3 className="text-lg font-bold mb-4 text-slate-300">MACD</h3>

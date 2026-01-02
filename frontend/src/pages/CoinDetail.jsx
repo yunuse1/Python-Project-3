@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from '../config';
 import { 
@@ -9,6 +9,7 @@ import {
 
 function CoinDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [chartData, setChartData] = useState([]);
   const [indexedSummary, setIndexedSummary] = useState(null);
   const [forecastData, setForecastData] = useState([]); 
@@ -36,7 +37,7 @@ function CoinDetail() {
         setForecastData(rForecast.data.forecast || []);
 
       } catch (err) {
-        console.error("Veri çekme hatası dayı:", err);
+        console.error("Data fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -45,34 +46,37 @@ function CoinDetail() {
     fetchData();
   }, [id]);
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <div className="animate-spin inline-block w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-        <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest">Yükleniyor...</p>
+        <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest">Loading...</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 text-white font-sans">
-      <Link to="/" className="text-slate-400 hover:text-white mb-8 inline-flex items-center gap-2 transition-colors font-bold uppercase text-xs tracking-widest">
-        <span>←</span> Piyasa Listesine Dön
-      </Link>
+      <button 
+        onClick={() => navigate(-1)} 
+        className="text-slate-400 hover:text-white mb-8 inline-flex items-center gap-2 transition-colors font-bold uppercase text-xs tracking-widest cursor-pointer bg-transparent border-none"
+      >
+        <span>←</span> Back to Market List
+      </button>
       
       <div className="bg-slate-800/40 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl border border-slate-700/50 mb-10">
         <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
                 <h1 className="text-5xl font-black capitalize tracking-tighter italic">{id}</h1>
                 <span className="bg-emerald-500/20 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest animate-pulse border border-emerald-500/30">
-                  Canlı Veri
+                  Live Data
                 </span>
             </div>
             {indexedSummary && (
                 <div className="text-right">
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 font-mono">30G Değişim</p>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 font-mono">30D Change</p>
                     <p className={`text-2xl font-black ${indexedSummary.percent_change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {indexedSummary.percent_change >= 0 ? '▲' : '▼'} %{Math.abs(indexedSummary.percent_change).toFixed(2)}
                     </p>
@@ -80,11 +84,11 @@ function CoinDetail() {
             )}
         </div>
 
-        {/* 1. ANA FİYAT GRAFİĞİ */}
+        {/* 1. MAIN PRICE CHART */}
         <div className="h-[450px] w-full bg-slate-950/40 rounded-[2rem] p-6 border border-white/5 shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
                 {(!chartData || chartData.length === 0) ? (
-                  <div className="h-full flex items-center justify-center text-slate-500 font-bold uppercase tracking-widest font-mono">Veri Yok</div>
+                  <div className="h-full flex items-center justify-center text-slate-500 font-bold uppercase tracking-widest font-mono">No Data</div>
                 ) : (
                   <AreaChart data={chartData}>
                         <defs>
@@ -106,25 +110,25 @@ function CoinDetail() {
             </ResponsiveContainer>
         </div>
 
-        {/* 2. BURAYA TAŞINDI: BENCHMARK / ENDEKS BİLGİSİ */}
+        {/* 2. MOVED HERE: BENCHMARK / INDEX INFO */}
         {indexedSummary && (
           <div className="mt-6 p-6 bg-slate-900/40 rounded-3xl border border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-500">
             <div className="flex items-center gap-3">
-                <span className="p-2 bg-slate-700 text-slate-200 rounded-lg text-[10px] font-black uppercase tracking-tighter">Endeks</span>
-                <p className="text-sm text-slate-400 font-medium font-mono">Analiz Başlangıcı: <b className="text-white">{new Date(indexedSummary.base_date).toLocaleDateString('tr-TR')}</b></p>
+                <span className="p-2 bg-slate-700 text-slate-200 rounded-lg text-[10px] font-black uppercase tracking-tighter">Index</span>
+                <p className="text-sm text-slate-400 font-medium font-mono">Analysis Start: <b className="text-white">{new Date(indexedSummary.base_date).toLocaleDateString('en-US')}</b></p>
             </div>
-            <p className="text-sm font-black uppercase tracking-widest text-slate-500 font-mono">Benchmark Baz Değeri: <b className="text-emerald-400 ml-2">100.00</b></p>
+            <p className="text-sm font-black uppercase tracking-widest text-slate-500 font-mono">Benchmark Base Value: <b className="text-emerald-400 ml-2">100.00</b></p>
           </div>
         )}
 
-        {/* 3. YAPAY ZEKA TAHMİN BÖLÜMÜ */}
+        {/* 3. AI PREDICTION SECTION */}
         {forecastData && forecastData.length > 0 && (
           <div className="mt-10 bg-indigo-500/5 p-8 rounded-[2.5rem] border border-indigo-500/20 shadow-[0_0_50px_rgba(99,102,241,0.05)]">
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-indigo-500/20 rounded-2xl text-2xl shadow-lg border border-indigo-500/30">🤖</div>
               <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">7 Günlük Fiyat Projeksiyonu</h3>
-                <p className="text-indigo-400/60 text-xs font-bold uppercase tracking-widest font-mono">Machine Learning Modeli</p>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">7-Day Price Projection</h3>
+                <p className="text-indigo-400/60 text-xs font-bold uppercase tracking-widest font-mono">Machine Learning Model</p>
               </div>
             </div>
 
@@ -152,7 +156,7 @@ function CoinDetail() {
             
             <div className="mt-6 flex items-center gap-3 text-slate-500 italic text-[11px] bg-slate-900/40 p-4 rounded-2xl">
               <span className="text-lg">⚠️</span>
-              <p className="font-mono uppercase tracking-tighter leading-tight opacity-70">Bu tahminleme modeli geçmiş veriler üzerinden üretilmiştir. Finansal tavsiye niteliği taşımaz! </p>
+              <p className="font-mono uppercase tracking-tighter leading-tight opacity-70">This prediction model is based on historical data. Not financial advice!</p>
             </div>
           </div>
         )}

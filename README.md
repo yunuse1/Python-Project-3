@@ -5,32 +5,32 @@ A comprehensive cryptocurrency analysis platform with React.js frontend, Flask b
 ## 🚀 Features
 
 ### Visualization (+15 pts - React.js)
-- **Interactive Charts**: Recharts library ile interaktif grafikler
-- **Dual Y-Axis Comparison**: İki farklı coin'i gerçek fiyatlarla karşılaştırma
-- **Technical Analysis Dashboard**: RSI, MACD, Bollinger Bands grafikleri
-- **Responsive Design**: Tailwind CSS ile modern, responsive tasarım
+- **Interactive Charts**: Interactive charts with Recharts library
+- **Dual Y-Axis Comparison**: Compare two different coins with real prices
+- **Technical Analysis Dashboard**: RSI, MACD, Bollinger Bands charts
+- **Responsive Design**: Modern, responsive design with Tailwind CSS
 
 ### Visualization (+5 pts - Seaborn)
 - **Statistical Plots**: Histogram, KDE, Box Plot, Violin Plot
-- **Correlation Heatmap**: Coinler arası korelasyon ısı haritası
-- **Pair Plot**: Scatter matrix ile çoklu değişken analizi
-- **Anomaly Visualization**: Z-Score ile anomali görselleştirme
+- **Correlation Heatmap**: Correlation heatmap between coins
+- **Pair Plot**: Multivariate analysis with scatter matrix
+- **Anomaly Visualization**: Anomaly visualization with Z-Score
 
 ---
 
 ## 📥 Scraped Messy Web Data (+10 pts)
 
-### Veri Kaynağı: Binance API
+### Data Source: Binance API
 
-Projede kullanılan veriler **Binance Cryptocurrency Exchange** API'sinden çekilmiştir. Bu bir REST API olup, ham (messy) formatta JSON verisi döndürür.
+The data used in this project is fetched from **Binance Cryptocurrency Exchange** API. This is a REST API that returns raw (messy) JSON data.
 
 #### API Endpoint
 ```
 https://api.binance.com/api/v3/klines?symbol={SYMBOL}&interval=1d&limit=90
 ```
 
-#### Ham Veri Formatı (Messy Data)
-Binance API'den gelen ham veri, **nested array** formatındadır ve her bir eleman farklı veri tiplerini içerir:
+#### Raw Data Format (Messy Data)
+Raw data from Binance API comes in **nested array** format, with each element containing different data types:
 
 ```json
 [
@@ -52,20 +52,20 @@ Binance API'den gelen ham veri, **nested array** formatındadır ve her bir elem
 ]
 ```
 
-### Verinin "Messy" Olma Sebepleri
+### Reasons Why Data is "Messy"
 
-| Problem | Açıklama | Çözüm |
-|---------|----------|-------|
-| **String Numbers** | Fiyatlar string olarak geliyor (`"42150.00"`) | `float()` ile dönüştürme |
-| **Millisecond Timestamps** | Zaman damgası ms cinsinden (13 haneli) | `/1000` ile saniyeye çevirme |
-| **Nested Arrays** | Veri iç içe listeler halinde | Index ile erişim `kline[4]` |
-| **No Column Names** | Sütun isimleri yok, sadece indexler | Manuel mapping |
-| **Mixed Types** | Aynı satırda int, string, float karışık | Tip dönüşümleri |
-| **Symbol Mismatch** | API'de `BTCUSDT`, DB'de `bitcoin` | Mapping tablosu |
+| Problem | Description | Solution |
+|---------|-------------|----------|
+| **String Numbers** | Prices come as strings (`"42150.00"`) | Convert with `float()` |
+| **Millisecond Timestamps** | Timestamp in ms (13 digits) | Divide by `/1000` to seconds |
+| **Nested Arrays** | Data in nested lists | Access by index `kline[4]` |
+| **No Column Names** | No column names, only indexes | Manual mapping |
+| **Mixed Types** | int, string, float mixed in same row | Type conversions |
+| **Symbol Mismatch** | API: `BTCUSDT`, DB: `bitcoin` | Mapping table |
 
-### Data Cleaning Pipeline (Veri Temizleme Süreci)
+### Data Cleaning Pipeline
 
-#### Adım 1: Ham Veri Çekme
+#### Step 1: Fetch Raw Data
 ```python
 # src/scripts/populate_market_data_fast.py
 import requests
@@ -76,32 +76,32 @@ def fetch_binance_klines(symbol, interval='1d', limit=90):
     response = requests.get(url, params=params)
     return response.json()  # Raw messy data
 
-# Örnek çıktı: [[1704067200000, "42150.00", ...], ...]
+# Example output: [[1704067200000, "42150.00", ...], ...]
 ```
 
-#### Adım 2: Array → Dictionary Dönüşümü
+#### Step 2: Array → Dictionary Conversion
 ```python
 def parse_kline(kline, coin_id):
-    """Ham array'i anlamlı dictionary'e çevir"""
+    """Convert raw array to meaningful dictionary"""
     return {
         'coin_id': coin_id,
         'timestamp': datetime.utcfromtimestamp(kline[0] / 1000),  # ms → datetime
         'open': float(kline[1]),      # String → Float
         'high': float(kline[2]),      # String → Float
         'low': float(kline[3]),       # String → Float
-        'close': float(kline[4]),     # String → Float (ana fiyat)
+        'close': float(kline[4]),     # String → Float (main price)
         'volume': float(kline[5]),    # String → Float
     }
 ```
 
-#### Adım 3: Symbol Mapping (ID Eşleştirme)
+#### Step 3: Symbol Mapping (ID Matching)
 ```python
-# CoinGecko ID → Binance Symbol eşleştirme
+# CoinGecko ID → Binance Symbol mapping
 def get_binance_symbol(coin_id, coin_symbol):
-    """bitcoin → BTCUSDT dönüşümü"""
+    """bitcoin → BTCUSDT conversion"""
     symbol_upper = coin_symbol.upper()
     
-    # Önce doğrudan dene
+    # Try direct match first
     candidates = [
         f"{symbol_upper}USDT",   # BTCUSDT
         f"{symbol_upper}BUSD",   # BTCBUSD  
@@ -112,16 +112,16 @@ def get_binance_symbol(coin_id, coin_symbol):
         if check_symbol_exists(candidate):
             return candidate
     
-    return None  # Eşleşme bulunamadı
+    return None  # No match found
 ```
 
-#### Adım 4: Timestamp Standardization
+#### Step 4: Timestamp Standardization
 ```python
-# src/app.py - API response hazırlama
+# src/app.py - Preparing API response
 from datetime import datetime, timezone
 
 def normalize_timestamp(ts):
-    """Farklı formatlardaki timestamp'leri UTC ISO 8601'e çevir"""
+    """Convert different timestamp formats to UTC ISO 8601"""
     
     # Unix milliseconds
     if isinstance(ts, (int, float)) and ts > 1e12:
@@ -139,49 +139,49 @@ def normalize_timestamp(ts):
     elif isinstance(ts, datetime):
         dt = ts
     
-    # UTC timezone ekle ve ISO format döndür
+    # Add UTC timezone and return ISO format
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     
     return dt.isoformat().replace('+00:00', 'Z')
-    # Çıktı: "2024-01-01T00:00:00Z"
+    # Output: "2024-01-01T00:00:00Z"
 ```
 
-#### Adım 5: Missing Value Handling
+#### Step 5: Missing Value Handling
 ```python
-# src/app.py - NaN/None temizleme
+# src/app.py - NaN/None cleanup
 import pandas as pd
 import numpy as np
 
 def clean_dataframe(df):
-    """Eksik ve hatalı değerleri temizle"""
+    """Clean missing and invalid values"""
     
-    # Price sütununu sayıya çevir (hatalı değerler NaN olur)
+    # Convert price column to number (invalid values become NaN)
     df['price'] = pd.to_numeric(df['price'], errors='coerce')
     
-    # NaN satırları sil
+    # Drop NaN rows
     df = df.dropna(subset=['price'])
     
-    # Sıfır ve negatif fiyatları sil
+    # Remove zero and negative prices
     df = df[df['price'] > 0]
     
-    # Timestamp'e göre sırala
+    # Sort by timestamp
     df = df.sort_values('timestamp')
     
-    # Duplicate'ları sil
+    # Remove duplicates
     df = df.drop_duplicates(subset=['timestamp'])
     
     return df
 ```
 
-#### Adım 6: JSON Serialization (API Response)
+#### Step 6: JSON Serialization (API Response)
 ```python
-# NaN/Infinity → null dönüşümü (JSON uyumluluğu)
+# NaN/Infinity → null conversion (JSON compatibility)
 def sanitize_for_json(value):
-    """Python değerlerini JSON-safe hale getir"""
+    """Convert Python values to JSON-safe format"""
     if isinstance(value, float):
         if np.isnan(value) or np.isinf(value):
-            return None  # JSON'da null olacak
+            return None  # Will be null in JSON
     if isinstance(value, (np.int64, np.int32)):
         return int(value)  # numpy int → python int
     if isinstance(value, (np.float64, np.float32)):
@@ -189,7 +189,7 @@ def sanitize_for_json(value):
     return value
 ```
 
-### Veri Akış Şeması
+### Data Flow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -202,7 +202,7 @@ def sanitize_for_json(value):
 │                     STEP 1: Parse & Type Convert                     │
 │  • kline[0]/1000 → datetime                                         │
 │  • float(kline[1]) → 42150.00                                       │
-│  • String → Float dönüşümü                                          │
+│  • String → Float conversion                                        │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
@@ -216,10 +216,10 @@ def sanitize_for_json(value):
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     STEP 3: Clean & Validate                         │
-│  • NaN değerleri sil                                                │
-│  • Sıfır/negatif fiyatları sil                                      │
-│  • Duplicate timestamp'leri sil                                     │
-│  • Timestamp'e göre sırala                                          │
+│  • Remove NaN values                                                │
+│  • Remove zero/negative prices                                      │
+│  • Remove duplicate timestamps                                      │
+│  • Sort by timestamp                                                │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
@@ -249,47 +249,47 @@ def sanitize_for_json(value):
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Temizlenen Veri İstatistikleri
+### Cleaned Data Statistics
 
-| Metrik | Değer |
+| Metric | Value |
 |--------|-------|
-| Toplam Coin Sayısı | 625+ |
-| Her Coin İçin Veri Noktası | 90 gün |
-| Toplam Kayıt | ~56,000+ |
-| Veri Kaynağı | Binance REST API |
-| Veri Formatı | OHLCV (Open, High, Low, Close, Volume) |
-| Zaman Aralığı | Son 90 gün |
-| Güncelleme Sıklığı | Günlük |
+| Total Coin Count | 625+ |
+| Data Points Per Coin | 90 days |
+| Total Records | ~56,000+ |
+| Data Source | Binance REST API |
+| Data Format | OHLCV (Open, High, Low, Close, Volume) |
+| Time Range | Last 90 days |
+| Update Frequency | Daily |
 
 ---
 
 ### Data Science & Analysis (+15 pts)
 
 #### Anomaly Detection Methods
-1. **Z-Score Method**: Standart sapma tabanlı anomali tespiti
-2. **IQR Method**: Interquartile Range ile outlier detection
-3. **Rolling Window**: Zamana bağlı trend-aware anomali tespiti
-4. **Price Spike Detection**: Ani fiyat değişimlerini tespit etme
+1. **Z-Score Method**: Standard deviation based anomaly detection
+2. **IQR Method**: Interquartile Range outlier detection
+3. **Rolling Window**: Time-dependent trend-aware anomaly detection
+4. **Price Spike Detection**: Sudden price change detection
 
 #### Technical Indicators
-- **RSI (Relative Strength Index)**: Momentum göstergesi (14 günlük)
-- **MACD**: Trend takip göstergesi
-- **Bollinger Bands**: Volatilite bantları
-- **SMA/EMA**: Hareketli ortalamalar (7, 14, 30 günlük)
+- **RSI (Relative Strength Index)**: Momentum indicator (14-day)
+- **MACD**: Trend following indicator
+- **Bollinger Bands**: Volatility bands
+- **SMA/EMA**: Moving averages (7, 14, 30-day)
 
 #### Risk Metrics
-- **Volatility**: 7 ve 30 günlük volatilite
-- **Sharpe Ratio**: Risk ayarlı getiri
-- **Maximum Drawdown**: En yüksek noktadan düşüş
-- **VaR (Value at Risk)**: Parametrik ve historik
-- **CVaR (Expected Shortfall)**: Tail risk ölçümü
-- **Beta**: Piyasa hassasiyeti
+- **Volatility**: 7 and 30-day volatility
+- **Sharpe Ratio**: Risk-adjusted return
+- **Maximum Drawdown**: Drop from peak
+- **VaR (Value at Risk)**: Parametric and historic
+- **CVaR (Expected Shortfall)**: Tail risk measurement
+- **Beta**: Market sensitivity
 
 #### Statistical Analysis
 - **Descriptive Statistics**: Mean, Std, Min, Max, Quartiles
-- **Skewness & Kurtosis**: Dağılım şekli analizi
-- **Correlation Matrix**: Coinler arası korelasyon
-- **Returns Analysis**: Günlük, kümülatif, yıllık getiri
+- **Skewness & Kurtosis**: Distribution shape analysis
+- **Correlation Matrix**: Correlation between coins
+- **Returns Analysis**: Daily, cumulative, annualized returns
 
 ---
 
@@ -299,9 +299,9 @@ def sanitize_for_json(value):
 - Python 3.10+
 - Node.js 18+
 - MongoDB 6.0+
-- Docker & Docker Compose (önerilen)
+- Docker & Docker Compose (recommended)
 
-### Docker ile Çalıştırma (Önerilen)
+### Running with Docker (Recommended)
 ```bash
 docker-compose up -d
 ```
@@ -309,7 +309,7 @@ docker-compose up -d
 - Backend: http://localhost:5000
 - MongoDB: localhost:27017
 
-### Manuel Kurulum
+### Manual Setup
 
 #### Backend
 ```bash
@@ -331,30 +331,30 @@ npm run dev
 ### Market Data
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/market-coins` | Market verisi olan coinlerin listesi |
-| `GET /api/market/<coin_id>` | Coin için OHLC verileri |
-| `GET /api/market/indexed` | İndeksli fiyat serisi (karşılaştırma için) |
+| `GET /api/market-coins` | List of coins with market data |
+| `GET /api/market/<coin_id>` | OHLC data for a coin |
+| `GET /api/market/indexed` | Indexed price series (for comparison) |
 
 ### Technical Analysis
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/analysis/<coin_id>` | RSI, MACD, Bollinger, trend analizi |
-| `GET /api/correlation?coins=btc,eth` | Korelasyon matrisi |
+| `GET /api/analysis/<coin_id>` | RSI, MACD, Bollinger, trend analysis |
+| `GET /api/correlation?coins=btc,eth` | Correlation matrix |
 
 ### Data Science
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/anomalies/<coin_id>` | Anomali tespiti (Z-Score, IQR, Rolling) |
-| `GET /api/report/<coin_id>` | Kapsamlı bilimsel rapor |
+| `GET /api/anomalies/<coin_id>` | Anomaly detection (Z-Score, IQR, Rolling) |
+| `GET /api/report/<coin_id>` | Comprehensive scientific report |
 
 ---
 
 ## 📊 Frontend Pages
 
-1. **Home (/)**: Tüm coinlerin listesi ve arama
-2. **Coin Detail (/coin/:id)**: Tek coin detayı ve grafiği
-3. **Compare (/compare)**: İki coin karşılaştırma (dual Y-axis)
-4. **Technical Analysis (/analysis)**: RSI, MACD, Bollinger grafikleri
+1. **Home (/)**: List of all coins with search
+2. **Coin Detail (/coin/:id)**: Single coin details and chart
+3. **Compare (/compare)**: Two coin comparison (dual Y-axis)
+4. **Technical Analysis (/analysis)**: RSI, MACD, Bollinger charts
 
 ---
 

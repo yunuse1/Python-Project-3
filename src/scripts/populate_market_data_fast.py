@@ -1,5 +1,10 @@
 import sys
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from util.get_coins import fetch_and_store_binance_ohlc, BINANCE_TO_ID
@@ -7,16 +12,16 @@ import concurrent.futures
 
 if __name__ == '__main__':
     symbols = list(BINANCE_TO_ID.keys())
-    print(f'Tüm {len(symbols)} popüler coin için OHLC veri çekiliyor (paralel)...')
+    logger.info(f'Fetching OHLC data for all {len(symbols)} popular coins (parallel)...')
     
-    # 5 paralel worker ile çek
+    # Fetch with 5 parallel workers
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(fetch_and_store_binance_ohlc, symbol, '1d', 90) for symbol in symbols]
         for idx, future in enumerate(concurrent.futures.as_completed(futures)):
             try:
                 future.result()
-                print(f'[{idx+1}/{len(symbols)}] Tamamlandı')
+                logger.info(f'[{idx+1}/{len(symbols)}] Completed')
             except Exception as e:
-                print(f'Hata: {e}')
+                logger.error(f'Error: {e}')
     
-    print('Tüm market_data verileri başarıyla eklenmiştir!')
+    logger.info('All market_data records successfully added!')
