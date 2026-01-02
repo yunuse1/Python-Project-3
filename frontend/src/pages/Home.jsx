@@ -26,6 +26,11 @@ function Home() {
     fetchCoins();
   }, []);
 
+  // Arama değiştiğinde sayfa 1'e dön
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Arama filtresi
   const filteredCoins = coins.filter(coin => 
     coin.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
