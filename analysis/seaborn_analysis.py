@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from db import database_manager as db
+from scipy import stats
 
 # Seaborn style settings
 sns.set_theme(style="darkgrid")
@@ -100,7 +101,6 @@ def plot_returns_analysis(df, coin_name, save=True):
     axes[0, 1].set_ylabel('Daily Return (%)')
     
     # QQ Plot (against normal distribution)
-    from scipy import stats
     stats.probplot(returns, dist="norm", plot=axes[1, 0])
     axes[1, 0].set_title('Q-Q Plot (Normal Distribution)', fontsize=12, fontweight='bold')
     
