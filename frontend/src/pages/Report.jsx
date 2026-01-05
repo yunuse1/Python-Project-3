@@ -76,7 +76,6 @@ function Report() {
         📊 Scientific Analysis Report
       </h1>
 
-      {/* Coin Selection */}
       <div className="flex justify-center mb-8">
         <select
           value={coin}
@@ -93,7 +92,6 @@ function Report() {
 
       {report && (
         <>
-          {/* Analysis Period */}
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-8 text-center">
             <span className="text-slate-400">Analysis Period: </span>
             <span className="text-white font-mono">
@@ -102,7 +100,6 @@ function Report() {
             <span className="text-slate-400 ml-4">({report.analysis_period?.total_days} days)</span>
           </div>
 
-          {/* Descriptive Statistics */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
             <h2 className="text-xl font-bold mb-4 text-slate-300">📈 Descriptive Statistics</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -121,7 +118,6 @@ function Report() {
             </div>
           </div>
 
-          {/* Returns Analysis */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
             <h2 className="text-xl font-bold mb-4 text-slate-300">💰 Returns Analysis</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -154,7 +150,6 @@ function Report() {
             </div>
           </div>
 
-          {/* Risk Analysis */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
             <h2 className="text-xl font-bold mb-4 text-slate-300">⚠️ Risk Analysis</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -190,7 +185,6 @@ function Report() {
             )}
           </div>
 
-          {/* Anomaly Detection */}
           {anomalies && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
               <h2 className="text-xl font-bold mb-4 text-slate-300">🔍 Anomaly Detection</h2>
@@ -222,7 +216,6 @@ function Report() {
                 />
               </div>
 
-              {/* Anomaly Chart */}
               {anomalies.series && anomalies.series.length > 0 && (
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -247,7 +240,6 @@ function Report() {
             </div>
           )}
 
-          {/* Trend Distribution */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
             <h2 className="text-xl font-bold mb-4 text-slate-300">📊 Trend Distribution</h2>
             <div className="grid grid-cols-3 gap-4">
@@ -282,7 +274,6 @@ function Report() {
             </div>
           </div>
 
-          {/* Data Quality */}
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-slate-300">✅ Data Quality</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -304,7 +295,6 @@ function Report() {
   );
 }
 
-// Stat Card Component
 function StatCard({ label, value, color = 'text-white', subtitle = null }) {
   return (
     <div className="bg-slate-900/50 p-3 rounded-lg text-center">

@@ -9,18 +9,16 @@ function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Get page number from URL, default to 1
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const setCurrentPage = (page) => {
     setSearchParams({ page: page.toString() });
   };
   
-  const itemsPerPage = 10; // Number of coins per page
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchCoins = async () => {
       try {
-        // Backend endpoint that returns only coins with market data
         const res = await axios.get(`${API_BASE}/api/market-coins`);
         setCoins(res.data);
       } catch (err) {
@@ -32,20 +30,17 @@ function Home() {
     fetchCoins();
   }, []);
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     if (searchTerm) {
       setSearchParams({ page: '1' });
     }
   }, [searchTerm]);
 
-  // Search filter
   const filteredCoins = coins.filter(coin => 
     coin.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     coin.symbol?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentCoins = filteredCoins.slice(indexOfFirstItem, indexOfLastItem);
@@ -56,7 +51,6 @@ function Home() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-white">
       
-      {/* Search Box */}
       <div className="mb-8 flex justify-between items-center">
         <h1 className="text-3xl font-bold">Market Overview</h1>
         <input 
@@ -67,7 +61,6 @@ function Home() {
         />
       </div>
 
-      {/* Table */}
       <div className="bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-slate-700">
         <table className="w-full text-left border-collapse table-fixed">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
@@ -126,7 +119,6 @@ function Home() {
         </table>
       </div>
 
-      {/* Pagination Buttons */}
       <div className="flex justify-center mt-8 gap-2">
         <button 
           onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}

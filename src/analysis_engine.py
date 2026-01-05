@@ -9,8 +9,6 @@ class CryptoAnalysisEngine:
     """
     Module for calculating technical analysis and risk metrics for cryptocurrency data.
     """
-
-    # ==================== TECHNICAL INDICATORS ====================
     
     def calculate_sma(self, df, column='price', periods=[7, 14, 30]):
         """Simple Moving Average"""
@@ -41,7 +39,7 @@ class CryptoAnalysisEngine:
         avg_gain = gain.rolling(window=period).mean()
         avg_loss = loss.rolling(window=period).mean()
         
-        rs = avg_gain / (avg_loss + 1e-10)  # Division by zero protection
+        rs = avg_gain / (avg_loss + 1e-10)
         df['rsi'] = 100 - (100 / (1 + rs))
         
         return df
@@ -76,8 +74,6 @@ class CryptoAnalysisEngine:
         df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle'] * 100
         
         return df
-
-    # ==================== RISK METRICS ====================
     
     def calculate_volatility(self, df, column='price', periods=[7, 30]):
         """
@@ -113,7 +109,6 @@ class CryptoAnalysisEngine:
         df = df.copy()
         df['daily_return'] = df[column].pct_change()
         
-        # Convert annual risk-free rate to daily
         daily_rf = risk_free_rate / 365
         
         excess_return = df['daily_return'] - daily_rf
@@ -121,7 +116,6 @@ class CryptoAnalysisEngine:
         mean_excess = excess_return.rolling(window=period).mean()
         std_excess = excess_return.rolling(window=period).std()
         
-        # Annualized Sharpe Ratio
         df['sharpe_ratio'] = (mean_excess / (std_excess + 1e-10)) * np.sqrt(365)
         
         return df
@@ -134,8 +128,6 @@ class CryptoAnalysisEngine:
         """
         coin_returns = coin_df[column].pct_change()
         bench_returns = benchmark_df[column].pct_change()
-        
-        # Ensure same length
         min_len = min(len(coin_returns), len(bench_returns))
         coin_returns = coin_returns.tail(min_len)
         bench_returns = bench_returns.tail(min_len)
@@ -146,8 +138,6 @@ class CryptoAnalysisEngine:
         beta = covariance / (variance + 1e-10)
         
         return beta
-
-    # ==================== TREND ANALYSIS ====================
     
     def detect_trend(self, df, column='price', short_period=7, long_period=30):
         """
@@ -188,16 +178,12 @@ class CryptoAnalysisEngine:
             'r1': 2 * pivot - support,
             's1': 2 * pivot - resistance
         }
-
-    # ==================== SUMMARY ANALYSIS ====================
     
     def get_full_analysis(self, df, column='price'):
         """
         Combine all analyses and return summary
         """
         df = df.copy()
-        
-        # Calculate all indicators
         df = self.calculate_sma(df, column, [7, 30])
         df = self.calculate_ema(df, column, [7, 30])
         df = self.calculate_rsi(df, column)
@@ -207,11 +193,8 @@ class CryptoAnalysisEngine:
         df = self.calculate_max_drawdown(df, column)
         df = self.calculate_sharpe_ratio(df, column)
         df = self.detect_trend(df, column)
-        
-        # Get latest values
         latest = df.iloc[-1]
         
-        # RSI interpretation
         rsi_value = latest.get('rsi', 50)
         if rsi_value > 70:
             rsi_signal = 'overbought'
@@ -220,10 +203,8 @@ class CryptoAnalysisEngine:
         else:
             rsi_signal = 'neutral'
         
-        # MACD interpretation
         macd_signal = 'bullish' if latest.get('macd_histogram', 0) > 0 else 'bearish'
         
-        # Bollinger position
         current_price = latest[column]
         bb_upper = latest.get('bb_upper', current_price)
         bb_lower = latest.get('bb_lower', current_price)
@@ -288,8 +269,6 @@ class CryptoAnalysisEngine:
         correlation_matrix = returns_df.corr()
         
         return correlation_matrix.to_dict()
-
-    # ==================== ANOMALY DETECTION (DATA SCIENCE) ====================
     
     def detect_anomalies_zscore(self, df, column='price', threshold=3.0):
         """
@@ -357,14 +336,11 @@ class CryptoAnalysisEngine:
         Combine all anomaly detection methods and return summary
         """
         df = df.copy()
-        
-        # Apply all anomaly detections
         df = self.detect_anomalies_zscore(df, column)
         df = self.detect_anomalies_iqr(df, column)
         df = self.detect_anomalies_rolling(df, column)
         df = self.detect_price_spikes(df, column)
         
-        # Anomalies detected by at least one method
         df['is_anomaly_any'] = (
             df['is_anomaly_zscore'] | 
             df['is_anomaly_iqr'] | 
@@ -372,7 +348,6 @@ class CryptoAnalysisEngine:
             df['is_spike']
         )
         
-        # Calculate anomaly count and percentage
         total_points = len(df)
         anomaly_counts = {
             'zscore': df['is_anomaly_zscore'].sum(),
@@ -382,14 +357,13 @@ class CryptoAnalysisEngine:
             'any_method': df['is_anomaly_any'].sum()
         }
         
-        # List anomaly dates
         anomaly_dates = df[df['is_anomaly_any']]['timestamp'].tolist() if 'timestamp' in df.columns else []
         
         return {
             'total_data_points': total_points,
             'anomaly_counts': anomaly_counts,
             'anomaly_percentage': round((anomaly_counts['any_method'] / total_points) * 100, 2),
-            'anomaly_dates': anomaly_dates[-10:],  # Last 10 anomalies
+            'anomaly_dates': anomaly_dates[-10:],
             'statistics': {
                 'mean': df[column].mean(),
                 'std': df[column].std(),
@@ -404,8 +378,6 @@ class CryptoAnalysisEngine:
             },
             'dataframe': df
         }
-
-    # ==================== ADVANCED STATISTICAL ANALYSIS ====================
     
     def calculate_descriptive_statistics(self, df, column='price'):
         """
@@ -463,19 +435,12 @@ class CryptoAnalysisEngine:
         df['daily_return'] = df[column].pct_change()
         returns = df['daily_return'].dropna()
         
-        # Value at Risk (VaR) - Parametrik
         mean_return = returns.mean()
         std_return = returns.std()
-        z_score = 1.645 if confidence_level == 0.95 else 2.326  # 95% veya 99%
+        z_score = 1.645 if confidence_level == 0.95 else 2.326
         var_parametric = mean_return - z_score * std_return
-        
-        # Value at Risk (VaR) - Historik
         var_historic = returns.quantile(1 - confidence_level)
-        
-        # Conditional VaR (CVaR / Expected Shortfall)
         cvar = returns[returns <= var_historic].mean()
-        
-        # Maximum Drawdown
         cumulative = (1 + returns).cumprod()
         rolling_max = cumulative.expanding().max()
         drawdowns = (cumulative - rolling_max) / rolling_max
@@ -498,14 +463,10 @@ class CryptoAnalysisEngine:
         Generate comprehensive scientific report
         """
         df = df.copy()
-        
-        # Run all analyses
         descriptive = self.calculate_descriptive_statistics(df, column)
         returns = self.calculate_returns_analysis(df, column)
         risk = self.calculate_risk_analysis(df, column)
         anomalies = self.get_anomaly_summary(df, column)
-        
-        # Trend analysis
         df_trend = self.detect_trend(df, column)
         trend_counts = df_trend['trend'].value_counts().to_dict()
         
@@ -533,7 +494,6 @@ class CryptoAnalysisEngine:
                 'data_completeness': ((len(df) - df[column].isna().sum()) / len(df)) * 100
             }
         }
-# ==================== USER PORTFOLIO ANALYSIS ====================
     
     def analyze_user_performance(self, user_data, current_market_prices):
         """
@@ -541,17 +501,14 @@ class CryptoAnalysisEngine:
         current_market_prices: expects a dictionary like {'bitcoin': 64000, 'ethereum': 3500, ...}
         """
         portfolio_report = []
-        total_pnl = 0  # Total Profit/Loss
+        total_pnl = 0
         
         for trade in user_data.get('trades', []):
             coin = trade['coin']
             buy_price = trade['buy_price']
             amount = trade['amount']
             
-            # If current price not in market data, use buy price as base
             current_price = current_market_prices.get(coin, buy_price)
-            
-            # Profit/Loss Calculations
             pnl = (current_price - buy_price) * amount
             pnl_percent = ((current_price - buy_price) / (buy_price + 1e-10)) * 100
             
@@ -572,7 +529,6 @@ class CryptoAnalysisEngine:
             "overall_status": "Profit" if total_pnl > 0 else "Loss",
             "portfolio_details": portfolio_report
         }
-# ==================== GLOBAL EXCHANGE ANALYSIS ====================
     
     def calculate_exchange_overview(self, all_users, current_market_prices):
         """
@@ -596,21 +552,15 @@ class CryptoAnalysisEngine:
                 
                 user_buy_val += buy_p * amount
                 user_curr_val += curr_p * amount
-                
-                # Popularity counter
                 coin_counts[coin] = coin_counts.get(coin, 0) + 1
             
-            # User's overall success percentage
             pnl_perc = ((user_curr_val - user_buy_val) / (user_buy_val + 1e-10)) * 100
             user_performances.append({
                 "username": user.get('username'),
                 "pnl_percent": round(pnl_perc, 2)
             })
 
-        # King of the Exchange (Highest % profit)
         king = max(user_performances, key=lambda x: x['pnl_percent']) if user_performances else None
-        
-        # Most popular coin
         popular = max(coin_counts, key=coin_counts.get) if coin_counts else "N/A"
 
         return {
@@ -624,7 +574,7 @@ class CryptoAnalysisEngine:
         from sklearn.linear_model import LinearRegression
         import numpy as np
         
-        if df.empty or len(df) < 5:  # Lowered threshold to 5 for testing
+        if df.empty or len(df) < 5:
             return []
 
         df = df.copy()

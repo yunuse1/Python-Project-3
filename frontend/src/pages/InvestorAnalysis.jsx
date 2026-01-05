@@ -3,16 +3,13 @@ import axios from 'axios';
 import API_BASE from '../config';
 
 function InvestorAnalysis() {
-  // --- TAB AND GENERAL STATE MANAGEMENT ---
-  const [activeTab, setActiveTab] = useState('single'); // 'single' or 'compare'
+  const [activeTab, setActiveTab] = useState('single');
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
   
-  // --- TAB 1 (SINGLE SUMMARY) STATES ---
   const [selectedUser, setSelectedUser] = useState('');
   const [analysis, setAnalysis] = useState(null);
 
-  // --- TAB 2 (COMPARISON) STATES ---
   const [userA, setUserA] = useState('');
   const [userB, setUserB] = useState('');
   const [analysisA, setAnalysisA] = useState(null);
@@ -21,7 +18,6 @@ function InvestorAnalysis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. On page load, fetch user list and exchange overview
   useEffect(() => {
     axios.get(`${API_BASE}/api/users`)
       .then(res => setUsers(res.data))
@@ -32,7 +28,6 @@ function InvestorAnalysis() {
       .catch(err => console.error("Exchange overview error:", err));
   }, []);
 
-  // 2. Fetch Single User Analysis
   useEffect(() => {
     if (selectedUser) {
       setLoading(true);
@@ -45,7 +40,6 @@ function InvestorAnalysis() {
     }
   }, [selectedUser]);
 
-  // 3. Fetch Comparison (Versus) Data
   useEffect(() => {
     if (userA) axios.get(`${API_BASE}/api/user-analysis/${userA}`).then(res => setAnalysisA(res.data));
   }, [userA]);
@@ -56,12 +50,10 @@ function InvestorAnalysis() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 text-white font-sans">
-      {/* HEADER */}
       <h1 className="text-4xl font-black mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-purple-500 uppercase tracking-tighter">
         Investor Analysis Center
       </h1>
 
-      {/* 🧭 TAB MENU (TAB SWITCHER) */}
       <div className="flex justify-center mb-12">
         <div className="bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700 inline-flex shadow-2xl backdrop-blur-md">
           <button
@@ -79,12 +71,8 @@ function InvestorAnalysis() {
         </div>
       </div>
 
-      {/* ====================================================== */}
-      {/* --- TAB 1: INVESTOR SUMMARY --- */}
-      {/* ====================================================== */}
       {activeTab === 'single' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* 🏆 Leadership Panel */}
           {overview && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 bg-slate-900/40 p-8 rounded-[2.5rem] border border-blue-500/20 shadow-2xl backdrop-blur-sm">
               <div className="text-center border-r border-slate-700/50 last:border-0 px-4">
@@ -105,7 +93,6 @@ function InvestorAnalysis() {
             </div>
           )}
 
-          {/* Investor Selection Dropdown */}
           <div className="flex justify-center mb-10">
             <select
               value={selectedUser}
@@ -121,7 +108,6 @@ function InvestorAnalysis() {
 
           {analysis && !loading && (
             <div className="space-y-8">
-              {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700 shadow-xl">
                   <div className="text-slate-400 text-xs font-bold uppercase mb-2">Wallet Balance</div>
@@ -141,7 +127,6 @@ function InvestorAnalysis() {
                 </div>
               </div>
 
-              {/* Portfolio Table */}
               <div className="bg-slate-800/50 rounded-[2rem] border border-slate-700 overflow-hidden shadow-2xl backdrop-blur-sm">
                 <div className="p-6 bg-slate-900/50 border-b border-slate-700 flex justify-between items-center">
                   <h3 className="text-xl font-black text-slate-200 uppercase tracking-tighter">Portfolio Assets</h3>
@@ -186,12 +171,8 @@ function InvestorAnalysis() {
         </div>
       )}
 
-      {/* ====================================================== */}
-      {/* --- TAB 2: COMPARISON (VERSUS MODE) --- */}
-      {/* ====================================================== */}
       {activeTab === 'compare' && (
         <div className="animate-in fade-in zoom-in duration-500">
-          {/* Selection Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             <div className="bg-red-500/5 p-8 rounded-[2rem] border border-red-500/20 shadow-lg">
               <label className="block text-red-500 text-xs font-black mb-4 uppercase text-center tracking-[0.3em]">Red Corner</label>
@@ -209,9 +190,7 @@ function InvestorAnalysis() {
             </div>
           </div>
 
-          {/* Battle Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* INVESTOR A */}
             <div className="bg-slate-800/40 p-8 rounded-[3rem] border-l-[12px] border-red-500 shadow-2xl backdrop-blur-md">
               {analysisA ? (
                 <div>
@@ -223,7 +202,6 @@ function InvestorAnalysis() {
                     </div>
                   </div>
 
-                  {/* Detailed Asset List A */}
                   <div className="space-y-3">
                     <div className="grid grid-cols-4 text-[10px] uppercase font-black text-slate-600 px-3 tracking-widest mb-2">
                       <span>Asset</span>
@@ -246,7 +224,6 @@ function InvestorAnalysis() {
               ) : <div className="h-64 flex items-center justify-center text-slate-700 italic font-black uppercase tracking-widest animate-pulse text-xl">Corner A Empty...</div>}
             </div>
 
-            {/* INVESTOR B */}
             <div className="bg-slate-800/40 p-8 rounded-[3rem] border-r-[12px] border-blue-500 shadow-2xl backdrop-blur-md">
               {analysisB ? (
                 <div>
@@ -258,7 +235,6 @@ function InvestorAnalysis() {
                     </div>
                   </div>
 
-                  {/* Detailed Asset List B */}
                   <div className="space-y-3">
                     <div className="grid grid-cols-4 text-[10px] uppercase font-black text-slate-600 px-3 tracking-widest mb-2">
                       <span>Asset</span>
@@ -282,7 +258,6 @@ function InvestorAnalysis() {
             </div>
           </div>
 
-          {/* WINNER PANEL */}
           {analysisA && analysisB && (
             <div className="mt-16 p-12 bg-slate-900/90 rounded-[5rem] border border-yellow-500/20 text-center shadow-[0_0_50px_rgba(234,179,8,0.1)] relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-blue-500/5 opacity-50"></div>

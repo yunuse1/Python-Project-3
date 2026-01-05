@@ -6,11 +6,9 @@ import pandas as pd
 import os
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Use 'mongo' for Docker environment, 'localhost' for local development
 MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
 MONGO_URI = f"mongodb://{MONGO_HOST}:27017/"
 DB_NAME = "crypto_project_db"
@@ -171,7 +169,7 @@ def fetch_and_store_all_coin_details_full():
             logger.info(f"[{idx+1}/{len(all_coins)}] {coin_id} detail saved.")
         else:
             logger.warning(f"{coin_id} detail could not be fetched.")
-        time.sleep(1.2)  # Wait for API rate limit
+        time.sleep(1.2)
     logger.info("All coin details completed.")
     
 def fetch_all_coins():
@@ -179,11 +177,10 @@ def fetch_all_coins():
     response = requests.get(url)
     if response.status_code == 200:
         coins = response.json()
-        # Get all USDT pairs (only first 1000)
         filtered = [c for c in coins if c['symbol'].endswith('USDT')][:1000]
         result = []
         for coin in filtered:
-            base = coin['symbol'][:-4]  # BTCUSDT -> BTC
+            base = coin['symbol'][:-4]
             result.append({
                 'id': coin['symbol'],
                 'symbol': base,
@@ -217,7 +214,6 @@ def upsert_coins_to_db(coins):
         collection.update_one({"id": coin["id"]}, {"$set": coin}, upsert=True)
     logger.info(f"{len(coins)} coins updated/inserted.")
 
-# Popular coins for detailed data collection
 POPULAR_COINS = ["bitcoin", "ethereum", "solana", "avalanche-2"]
 POPULAR_COLLECTION = "popular_coins"
 
@@ -228,7 +224,6 @@ def fetch_and_store_popular_coins():
     for coin_id in POPULAR_COINS:
         detail = fetch_coin_detail(coin_id)
         if detail:
-            # Save only basic fields
             coin_data = {
                 "id": detail.get("id"),
                 "symbol": detail.get("symbol"),
@@ -263,7 +258,7 @@ def fetch_and_store_all_coin_details():
     collection = db["all_coins_details"]
     per_page = 250
     total_inserted = 0
-    max_pages = 4  # First 1000 popular coins
+    max_pages = 4
     for page in range(1, max_pages + 1):
         url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page={per_page}&page={page}"
         response = requests.get(url)
@@ -288,7 +283,7 @@ def fetch_and_store_all_coin_details():
             collection.update_one({"id": coin["id"]}, {"$set": coin_data}, upsert=True)
             total_inserted += 1
         logger.info(f"Total inserted/updated: {total_inserted}")
-        time.sleep(2)  # Wait for API rate limit
+        time.sleep(2)
     logger.info(f"First 1000 popular coin details updated. Total: {total_inserted}")
 
 def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
@@ -307,11 +302,9 @@ def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
     if not data:
         logger.warning(f"No data: {symbol}")
         return
-    # Convert each row to dict
     from datetime import datetime as dt
     records = []
     for row in data:
-        # Timestamp is in milliseconds, convert to ISO format
         timestamp_ms = row[0]
         timestamp_iso = dt.utcfromtimestamp(timestamp_ms / 1000).isoformat() + 'Z'
         records.append({
@@ -321,22 +314,19 @@ def fetch_and_store_binance_ohlc(symbol, interval="1d", limit=90):
             "high": float(row[2]),
             "low": float(row[3]),
             "close": float(row[4]),
-            "price": float(row[4]),  # "price" field for frontend (close price)
+            "price": float(row[4]),
             "volume": float(row[5])
         })
-    # Save to MongoDB
     client = pymongo.MongoClient(MONGO_URI)
     db_ = client[DB_NAME]
     market_collection = db_["market_data"]
     market_collection.delete_many({"coin_id": symbol})
-    # Also save with frontend id if mapping exists
     frontend_id = BINANCE_TO_ID.get(symbol)
     if frontend_id:
         market_collection.delete_many({"coin_id": frontend_id})
     if records:
         market_collection.insert_many(records)
         logger.info(f"{len(records)} OHLC data saved for {symbol}.")
-        # Also save copy with frontend id (remove _id to avoid conflicts)
         if frontend_id:
             mapped = []
             for r in records:

@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import datetime
 
-# Ensure src is on path when run from repo root
 ROOT_SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT_SRC not in sys.path:
     sys.path.insert(0, ROOT_SRC)
@@ -10,7 +9,6 @@ if ROOT_SRC not in sys.path:
 import pymongo
 import pandas as pd
 
-# Use 'mongo' in Docker environment, 'localhost' locally
 MONGO_HOST = os.environ.get('MONGO_HOST', 'localhost')
 MONGO_URI = f'mongodb://{MONGO_HOST}:27017/'
 DB_NAME = os.environ.get('DB_NAME', 'crypto_project_db')
@@ -28,7 +26,6 @@ def load_popular_coins(client=None):
     if not docs:
         return pd.DataFrame()
     df = pd.DataFrame(docs)
-    # Convert datetime fields if present
     if 'last_updated' in df.columns:
         df['last_updated'] = pd.to_datetime(df['last_updated'])
     return df

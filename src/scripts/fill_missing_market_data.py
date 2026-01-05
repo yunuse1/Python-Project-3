@@ -13,21 +13,17 @@ import pymongo
 import concurrent.futures
 
 if __name__ == '__main__':
-    # Use 'mongo' for Docker environment, 'localhost' for local development
     MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
     client = pymongo.MongoClient(f'mongodb://{MONGO_HOST}:27017/')
     db = client['crypto_project_db']
     
-    # Get all coins from all_coins
     all_coins = list(db['all_coins'].find({}, {'symbol': 1, '_id': 0}))
     
-    # Find coins without market_data
     market_symbols = set(db['market_data'].distinct('coin_id'))
     missing_coins = [c for c in all_coins if c['symbol'].lower() not in market_symbols]
     
     logger.info(f'Fetching market_data for {len(missing_coins)} coins...')
     
-    # Create Binance symbol and fetch (parallel)
     symbols = [c['symbol'].upper() + 'USDT' for c in missing_coins]
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

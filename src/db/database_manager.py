@@ -7,18 +7,15 @@ import logging
 from faker import Faker
 from datetime import timedelta
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Use 'mongo' for Docker environment, 'localhost' for local development
 MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
 client = pymongo.MongoClient(f"mongodb://{MONGO_HOST}:27017/")
 db = client["crypto_project_db"]
 users_collection = db["users"]
 market_collection = db["market_data"]
 
-# Create indexes for faster queries (idempotent - safe to run multiple times)
 try:
     market_collection.create_index([("coin_id", 1), ("timestamp", -1)])
     market_collection.create_index("coin_id")
@@ -39,28 +36,23 @@ def save_market_data(coin_id, df):
 
 def get_market_data(coin_id):
     try:
-        # Direct match (e.g., 'bitcoin' or 'BTCUSDT')
         cursor = market_collection.find({"coin_id": coin_id}, {"_id": 0})
         df = pd.DataFrame(list(cursor))
 
-        # If no direct record, try fallback searches using coin's symbol
         if df.empty:
             details_col = db["all_coins_details"]
             doc = details_col.find_one({"id": coin_id}, {"symbol": 1, "_id": 0})
             candidates = []
             if doc and doc.get("symbol"):
                 sym = doc.get("symbol").upper()
-                # Try common quote pairs
                 candidates = [sym + 'USDT', sym + 'BUSD', sym + 'USDC', sym]
 
-            # First try exact matches
             if candidates:
                 cursor2 = market_collection.find({"coin_id": {"$in": candidates}}, {"_id": 0})
                 df2 = pd.DataFrame(list(cursor2))
                 if not df2.empty:
                     df = df2
 
-            # Still empty, check with regex for symbol prefix
             if df.empty and doc and doc.get("symbol"):
                 regex_pattern = f"^{doc.get('symbol').upper()}"
                 cursor3 = market_collection.find({"coin_id": {"$regex": regex_pattern}}, {"_id": 0})
@@ -68,17 +60,14 @@ def get_market_data(coin_id):
                 if not df3.empty:
                     df = df3
 
-            # Last resort: case-insensitive search with coin_id
             if df.empty:
                 cursor4 = market_collection.find({"coin_id": {"$regex": coin_id, "$options": "i"}}, {"_id": 0})
                 df4 = pd.DataFrame(list(cursor4))
                 if not df4.empty:
                     df = df4
 
-        # Filter out rows with price 0 or None
         if not df.empty and "price" in df.columns:
             df = df[(df["price"].notnull()) & (df["price"] != 0)]
-        # Convert timestamp to DateTime and sort if exists
         if not df.empty and "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"])
             df = df.sort_values("timestamp")
@@ -106,7 +95,7 @@ def seed_users_into_code(count=25):
                 "trades": [
                     {
                         "coin": random.choice(coins),
-                        "buy_price": round(random.uniform(10, 65000), 2),  # Critical for analysis
+                        "buy_price": round(random.uniform(10, 65000), 2),
                         "amount": round(random.uniform(0.01, 1.5), 4),
                         "date": datetime.now() - timedelta(days=random.randint(1, 60))
                     } for _ in range(random.randint(1, 3))

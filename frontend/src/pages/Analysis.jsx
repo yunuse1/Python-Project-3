@@ -45,21 +45,18 @@ function Analysis() {
     return `$${value.toFixed(6)}`;
   };
 
-  // RSI rengi
   const getRsiColor = (rsi) => {
     if (rsi > 70) return 'text-red-400';
     if (rsi < 30) return 'text-green-400';
     return 'text-yellow-400';
   };
 
-  // Trend rengi
   const getTrendColor = (trend) => {
     if (trend === 'bullish') return 'text-green-400';
     if (trend === 'bearish') return 'text-red-400';
     return 'text-gray-400';
   };
 
-  // Trend ikonu
   const getTrendIcon = (trend) => {
     if (trend === 'bullish') return '📈';
     if (trend === 'bearish') return '📉';
@@ -80,7 +77,6 @@ function Analysis() {
         Technical Analysis Dashboard
       </h1>
 
-      {/* Coin Selection */}
       <div className="flex justify-center mb-8">
         <select
           value={coin}
@@ -97,9 +93,7 @@ function Analysis() {
 
       {analysis && (
         <>
-          {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {/* Price */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Current Price</div>
               <div className="text-2xl font-bold text-white">
@@ -107,7 +101,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* RSI */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">RSI (14)</div>
               <div className={`text-2xl font-bold ${getRsiColor(analysis.indicators?.rsi)}`}>
@@ -120,7 +113,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Trend */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Trend</div>
               <div className={`text-2xl font-bold ${getTrendColor(analysis.trend?.direction)}`}>
@@ -128,7 +120,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Volatility */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Volatility (30d)</div>
               <div className="text-2xl font-bold text-purple-400">
@@ -137,9 +128,7 @@ function Analysis() {
             </div>
           </div>
 
-          {/* Second Row Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {/* MACD */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">MACD Trend</div>
               <div className={`text-xl font-bold ${analysis.indicators?.macd_trend === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
@@ -147,7 +136,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Sharpe Ratio */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Sharpe Ratio</div>
               <div className={`text-2xl font-bold ${(analysis.risk_metrics?.sharpe_ratio || 0) > 1 ? 'text-green-400' : 'text-yellow-400'}`}>
@@ -155,7 +143,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Max Drawdown */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Max Drawdown</div>
               <div className="text-2xl font-bold text-red-400">
@@ -163,7 +150,6 @@ function Analysis() {
               </div>
             </div>
 
-            {/* Bollinger Position */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
               <div className="text-slate-400 text-sm">Bollinger Position</div>
               <div className="text-lg font-bold text-blue-400">
@@ -175,7 +161,6 @@ function Analysis() {
             </div>
           </div>
 
-          {/* Support/Resistance Levels */}
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-8">
             <h3 className="text-lg font-bold mb-3 text-slate-300">Support & Resistance Levels</h3>
             <div className="grid grid-cols-5 gap-4 text-center">
@@ -202,7 +187,6 @@ function Analysis() {
             </div>
           </div>
 
-          {/* Price + Bollinger Bands Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
               <h3 className="text-lg font-bold mb-4 text-slate-300">Price & Bollinger Bands</h3>
@@ -230,7 +214,6 @@ function Analysis() {
             </div>
           )}
 
-          {/* RSI Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8">
               <h3 className="text-lg font-bold mb-4 text-slate-300">RSI (Relative Strength Index)</h3>
@@ -253,7 +236,6 @@ function Analysis() {
             </div>
           )}
 
-          {/* MACD Chart */}
           {analysis.series && analysis.series.length > 0 && (
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl">
               <h3 className="text-lg font-bold mb-4 text-slate-300">MACD</h3>

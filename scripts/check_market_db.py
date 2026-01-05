@@ -26,7 +26,6 @@ try:
     sample_details = list(details.find({}, {'_id': 0}).limit(5))
     safe_print('all_coins_details sample (up to 5)', sample_details)
 
-    # Check a specific coin lookup used by app (bitcoin)
     from db.database_manager import get_market_data
     df = get_market_data('bitcoin')
     safe_print("get_market_data('bitcoin') empty?", df.empty)

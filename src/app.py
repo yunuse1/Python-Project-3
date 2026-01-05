@@ -10,19 +10,16 @@ from db import database_manager as db
 from analysis_engine import CryptoAnalysisEngine
 import time
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Analysis engine instance
 analysis_engine = CryptoAnalysisEngine()
 
-# Simple in-memory cache for market-coins list
 _market_coins_cache = {'data': None, 'timestamp': 0}
-CACHE_TTL = 300  # 5 minutes
+CACHE_TTL = 300
 
 
 @app.route('/api/all-coins', methods=['GET'])
@@ -65,23 +62,17 @@ def get_coin_data(coin_id):
         JSON: List of price data records.
     """
     try:
-        # Fetch data using the function from database_manager
         df = db.get_market_data(coin_id)
         
-        # Check if data exists
         if df.empty:
             return jsonify({"error": "Data not found", "data": []}), 404
             
-        # Convert Pandas DataFrame to a list of dictionaries (JSON compatible)
         result = df.to_dict(orient="records")
 
-        # Sanitize values: convert NaN/NaT to None (JSON null) and
-        # normalize timestamps to ISO 8601 (UTC, ending with Z).
         sanitized = []
         for rec in result:
             out = {}
             for k, v in rec.items():
-                # pandas/numpy NA handling
                 try:
                     if pd.isna(v):
                         out[k] = None
@@ -89,7 +80,6 @@ def get_coin_data(coin_id):
                 except Exception:
                     pass
 
-                # Normalize timestamp formats (datetime or RFC-2822 strings)
                 if k == 'timestamp':
                     if isinstance(v, datetime):
                         dt = v
@@ -107,7 +97,6 @@ def get_coin_data(coin_id):
                                 out[k] = dt.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
                             continue
                         except Exception:
-                            # keep original string if parsing fails
                             out[k] = v
                             continue
 
@@ -128,8 +117,6 @@ def get_users():
         JSON: List of users and their portfolios.
     """
     try:
-        # Fetch all documents from the users collection
-        # {"_id": 0} excludes the MongoDB internal ID field to prevent JSON errors
         users = list(db.users_collection.find({}, {"_id": 0}))
         
         return jsonify(users)
@@ -138,7 +125,6 @@ def get_users():
         return jsonify({"error": str(e)}), 500
 
 
-# Coin ID to symbol mapping for images
 COIN_SYMBOLS = {
     'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'cardano': 'ADA',
     'ripple': 'XRP', 'dogecoin': 'DOGE', 'polkadot': 'DOT', 'avalanche-2': 'AVAX',
@@ -160,7 +146,6 @@ COIN_SYMBOLS = {
     'trust-wallet-token': 'TWT', 'fetch-ai': 'FET', 'certik': 'CTK',
     'optimism': 'OP', 'arbitrum': 'ARB', 'sui': 'SUI', 'celestia': 'TIA',
     'immutable-x': 'IMX', 'lido-dao': 'LDO', 'gala': 'GALA', 'ordi': 'ORDI',
-    # Fan tokens and others
     'bakerytoken': 'BAKE', 'bella-protocol': 'BEL', 'akropolis': 'AKRO',
     'alien-worlds': 'TLM', 'myneighboralice': 'ALICE', 'dego-finance': 'DEGO',
     'dodo': 'DODO', 'wing-finance': 'WING', 'linear': 'LINA', 'ramp': 'RAMP',
@@ -171,7 +156,6 @@ COIN_SYMBOLS = {
     'biconomy': 'BICO', 'jasmycoin': 'JASMY', 'spell-token': 'SPELL',
     'stargate-finance': 'STG', 'gmx': 'GMX', 'convex-finance': 'CVX',
     'highstreet': 'HIGH', 'voxels': 'VOXEL', 'sei': 'SEI',
-    # Fan tokens (use CHZ as base since they're on Chiliz)
     'paris-saint-germain-fan-token': 'PSG', 'juventus-fan-token': 'JUV',
     'fc-barcelona-fan-token': 'BAR', 'atletico-madrid-fan-token': 'ATM',
     'as-roma-fan-token': 'ASR', 'og-fan-token': 'OG', 'manchester-city-fan-token': 'CITY',
@@ -188,20 +172,15 @@ def fetch_market_coins_list():
         client = db.client
         market_coll = client["crypto_project_db"]["market_data"]
         
-        # Use aggregation to get distinct coins with their latest 2 prices for daily change
         pipeline = [
-            # Filter out trading pairs (BTCUSDT, etc.)
             {'$match': {
                 'coin_id': {'$not': {'$regex': '(USDT|BUSD|USDC|BTC|ETH)$'}}
             }},
-            # Sort by timestamp descending to get latest first
             {'$sort': {'timestamp': -1}},
-            # Group by coin_id and get first 2 prices
             {'$group': {
                 '_id': '$coin_id',
                 'prices': {'$push': {'$ifNull': ['$close', {'$ifNull': ['$c', '$price']}]}},
             }},
-            # Add fields for current price and previous price
             {'$project': {
                 '_id': 1,
                 'current_price': {'$arrayElemAt': ['$prices', 0]},
@@ -211,7 +190,6 @@ def fetch_market_coins_list():
         
         results = list(market_coll.aggregate(pipeline))
         
-        # Build response
         result = []
         for doc in results:
             coin_id = doc['_id']
@@ -221,14 +199,11 @@ def fetch_market_coins_list():
             current_price = doc.get('current_price')
             previous_price = doc.get('previous_price')
             
-            # Calculate 24h change percentage
             price_change_24h = None
             if current_price and previous_price and previous_price != 0:
                 price_change_24h = ((current_price - previous_price) / previous_price) * 100
             
-            # Get symbol for display
             symbol = COIN_SYMBOLS.get(coin_id, coin_id[:3].upper())
-            # Use CoinCap API for coin images
             image_url = f"https://assets.coincap.io/assets/icons/{symbol.lower()}@2x.png"
             
             result.append({
@@ -240,7 +215,6 @@ def fetch_market_coins_list():
                 'image': image_url
             })
         
-        # Sort by name
         result.sort(key=lambda x: x['name'])
         return result
     except Exception as e:
@@ -254,14 +228,10 @@ def get_market_coins():
     global _market_coins_cache
     try:
         now = time.time()
-        # Return cached data if still valid
         if _market_coins_cache['data'] is not None and (now - _market_coins_cache['timestamp']) < CACHE_TTL:
             return jsonify(_market_coins_cache['data'])
         
-        # Fetch fresh data
         coins = fetch_market_coins_list()
-        
-        # Update cache
         _market_coins_cache = {'data': coins, 'timestamp': now}
         
         return jsonify(coins)
@@ -290,46 +260,38 @@ def get_indexed_series():
         for coin in coins:
             df = db.get_market_data(coin)
 
-                # Defensive: accept alternative price column names and coerce types
             if df.empty:
                 results[coin] = {"series": [], "summary": None, "debug": {"raw_count": 0, "valid_count": 0}}
                 continue
 
             df = df.copy()
 
-            # normalize timestamp column (make tz-aware UTC)
             if 'timestamp' in df.columns:
                 df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce', utc=True)
             else:
                 df['timestamp'] = pd.NaT
 
-            # normalize price column: accept 'price', 'close', 'c'
             if 'price' not in df.columns:
                 if 'close' in df.columns:
                     df['price'] = df['close']
                 elif 'c' in df.columns:
                     df['price'] = df['c']
 
-            # coerce price to numeric
             if 'price' in df.columns:
                 df['price'] = pd.to_numeric(df['price'], errors='coerce')
 
             df = df.sort_values('timestamp')
 
-            # determine base_date for this coin
             if base_date_raw:
                 try:
                     bd = parsedate_to_datetime(base_date_raw)
                     bd = bd.astimezone(timezone.utc) if bd.tzinfo else bd.replace(tzinfo=timezone.utc)
                 except Exception:
-                    # fallback: try pandas parser
                     bd = pd.to_datetime(base_date_raw, utc=True)
             else:
-                # default base = 30 days before latest available
                 latest = df['timestamp'].max()
                 bd = latest - pd.Timedelta(days=30)
 
-            # find the first price at or after base_date; fallback to earliest
             df_valid = df.dropna(subset=['price'])
             raw_count = len(df)
             valid_count = len(df_valid)
@@ -345,7 +307,6 @@ def get_indexed_series():
                 base_price = float(df_valid.iloc[0]['price'])
                 base_ts = pd.to_datetime(df_valid.iloc[0]['timestamp'], utc=True)
 
-            # compute indexed series
             series = []
             for _, row in df_valid.iterrows():
                 try:
@@ -370,7 +331,6 @@ def get_indexed_series():
             results[coin] = {"series": series, "summary": summary, "debug": {"raw_count": raw_count, "valid_count": valid_count}}
             ranking.append({"coin": coin, "percent_change": pct_change})
 
-        # sort ranking descending
         ranking = sorted(ranking, key=lambda x: x['percent_change'], reverse=True)
 
         return jsonify({"coins": results, "ranking": ranking})
@@ -390,7 +350,6 @@ def get_coin_analysis(coin_id):
         if df.empty:
             return jsonify({"error": "Data not found"}), 404
         
-        # Normalize price column
         if 'price' not in df.columns:
             if 'close' in df.columns:
                 df['price'] = df['close']
@@ -403,13 +362,10 @@ def get_coin_analysis(coin_id):
         if len(df) < 30:
             return jsonify({"error": "Insufficient data for analysis", "data_points": len(df)}), 400
         
-        # Full analysis
         analysis = analysis_engine.get_full_analysis(df, column='price')
         
-        # Remove DataFrame (cannot be converted to JSON)
         analysis_df = analysis.pop('dataframe')
         
-        # Convert NaN values to None
         def clean_value(v):
             if isinstance(v, float) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -425,7 +381,6 @@ def get_coin_analysis(coin_id):
         
         analysis = clean_dict(analysis)
         
-        # Last 30 days data series (for chart)
         recent_df = analysis_df.tail(30).copy()
         series_data = []
         for _, row in recent_df.iterrows():
@@ -468,26 +423,20 @@ def get_user_performance(username):
     with current market prices.
     """
     try:
-        # 1. Find user in MongoDB
         user = db.users_collection.find_one({"username": username}, {"_id": 0})
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # 2. Get current prices for user's coins
-        # Note: For simplicity, we get the latest record from market_data for each coin
         current_prices = {}
         unique_coins = set(trade['coin'] for trade in user.get('trades', []))
         
         for coin_id in unique_coins:
             coin_df = db.get_market_data(coin_id)
             if not coin_df.empty:
-                # Get the most recent (current) price
                 current_prices[coin_id] = float(coin_df.iloc[-1]['price'])
             else:
-                # If no data, use buy price as default (PNL will be 0)
                 current_prices[coin_id] = 0
 
-        # 3. Run the analysis engine
         performance_report = analysis_engine.analyze_user_performance(user, current_prices)
 
         return jsonify(performance_report)
@@ -526,7 +475,6 @@ def get_correlation():
         
         correlation = analysis_engine.calculate_correlation_matrix(coin_dfs)
         
-        # Clean NaN values
         def clean_corr(d):
             if isinstance(d, dict):
                 return {k: clean_corr(v) for k, v in d.items()}
@@ -555,7 +503,6 @@ def get_coin_anomalies(coin_id):
         if df.empty:
             return jsonify({"error": "Data not found"}), 404
         
-        # Normalize price column
         if 'price' not in df.columns:
             if 'close' in df.columns:
                 df['price'] = df['close']
@@ -568,13 +515,9 @@ def get_coin_anomalies(coin_id):
         if len(df) < 10:
             return jsonify({"error": "Insufficient data for anomaly detection"}), 400
         
-        # Anomaly analysis
         anomaly_result = analysis_engine.get_anomaly_summary(df, column='price')
-        
-        # Remove DataFrame
         anomaly_df = anomaly_result.pop('dataframe')
         
-        # Clean NaN values
         def clean_value(v):
             if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -594,7 +537,6 @@ def get_coin_anomalies(coin_id):
         
         anomaly_result = clean_dict(anomaly_result)
         
-        # Last 30 days anomaly data (for chart)
         recent_df = anomaly_df.tail(30).copy()
         series_data = []
         for _, row in recent_df.iterrows():
@@ -626,12 +568,10 @@ def get_coin_anomalies(coin_id):
 @app.route('/api/forecast/<coin_id>', methods=['GET'])
 def get_coin_forecast(coin_id):
     try:
-        # Get historical data from MongoDB
         df = db.get_market_data(coin_id)
         if df.empty:
             return jsonify({"error": "Data not found"}), 404
         
-        # Calculate forecast
         forecast = analysis_engine.predict_future_price(df)
         return jsonify({
             "coin": coin_id,
@@ -645,8 +585,6 @@ def get_coin_forecast(coin_id):
 def get_exchange_overview():
     try:
         users = list(db.users_collection.find({}, {"_id": 0}))
-        
-        # Find unique coins in all portfolios and get their current prices
         unique_coins = {t['coin'] for u in users for t in u.get('trades', [])}
         current_prices = {}
         for c in unique_coins:
@@ -671,7 +609,6 @@ def get_scientific_report(coin_id):
         if df.empty:
             return jsonify({"error": "Data not found"}), 404
         
-        # Normalize price column
         if 'price' not in df.columns:
             if 'close' in df.columns:
                 df['price'] = df['close']
@@ -684,16 +621,13 @@ def get_scientific_report(coin_id):
         if len(df) < 30:
             return jsonify({"error": "Insufficient data for scientific report"}), 400
         
-        # Get coin name
         client = db.client
         details_coll = client["crypto_project_db"]["all_coins_details"]
         coin_info = details_coll.find_one({"id": coin_id}, {"_id": 0, "name": 1})
         coin_name = coin_info.get('name', coin_id) if coin_info else coin_id
         
-        # Generate scientific report
         report = analysis_engine.generate_scientific_report(df, column='price', coin_name=coin_name)
         
-        # Clean NaN values
         def clean_value(v):
             if isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)):
                 return None
@@ -727,6 +661,4 @@ if __name__ == '__main__':
         logger.info("Database initialization complete.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
-    # Run the application on port 5000 in debug mode
-    # host='0.0.0.0' is required for Docker to expose the port externally
     app.run(debug=True, host='0.0.0.0', port=5000)

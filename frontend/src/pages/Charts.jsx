@@ -3,24 +3,19 @@ import React, { useState } from 'react';
 function Charts() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   
-  // Charts created with Seaborn
   const charts = [
-    // Bitcoin
     { id: 'bitcoin_price_distribution', title: 'Bitcoin - Price Distribution', category: 'bitcoin', description: 'Price distribution analysis with Histogram + KDE and Box Plot' },
     { id: 'bitcoin_returns_analysis', title: 'Bitcoin - Returns Analysis', category: 'bitcoin', description: 'Violin Plot, Q-Q Plot and returns category distribution' },
     { id: 'bitcoin_time_series', title: 'Bitcoin - Time Series', category: 'bitcoin', description: 'Price trend, rolling statistics and daily returns' },
     { id: 'bitcoin_anomaly_detection', title: 'Bitcoin - Anomaly Detection', category: 'bitcoin', description: 'Anomaly detection visualization with Z-Score' },
-    // Ethereum
     { id: 'ethereum_price_distribution', title: 'Ethereum - Price Distribution', category: 'ethereum', description: 'Price distribution analysis with Histogram + KDE and Box Plot' },
     { id: 'ethereum_returns_analysis', title: 'Ethereum - Returns Analysis', category: 'ethereum', description: 'Violin Plot, Q-Q Plot and returns category distribution' },
     { id: 'ethereum_time_series', title: 'Ethereum - Time Series', category: 'ethereum', description: 'Price trend, rolling statistics and daily returns' },
     { id: 'ethereum_anomaly_detection', title: 'Ethereum - Anomaly Detection', category: 'ethereum', description: 'Anomaly detection visualization with Z-Score' },
-    // Solana
     { id: 'solana_price_distribution', title: 'Solana - Price Distribution', category: 'solana', description: 'Price distribution analysis with Histogram + KDE and Box Plot' },
     { id: 'solana_returns_analysis', title: 'Solana - Returns Analysis', category: 'solana', description: 'Violin Plot, Q-Q Plot and returns category distribution' },
     { id: 'solana_time_series', title: 'Solana - Time Series', category: 'solana', description: 'Price trend, rolling statistics and daily returns' },
     { id: 'solana_anomaly_detection', title: 'Solana - Anomaly Detection', category: 'solana', description: 'Anomaly detection visualization with Z-Score' },
-    // Comparison
     { id: 'correlation_heatmap', title: 'Correlation Heatmap', category: 'comparison', description: 'Returns correlation between 10 cryptocurrencies' },
     { id: 'volatility_comparison', title: 'Volatility Comparison', category: 'comparison', description: 'Risk-Return profile and volatility analysis' },
     { id: 'returns_pairplot', title: 'Returns Pair Plot', category: 'comparison', description: 'Inter-coin returns relationship scatter matrix' },
@@ -50,7 +45,6 @@ function Charts() {
         Statistical charts created with Python Seaborn library
       </p>
 
-      {/* Kategori Filtreleri */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         {categories.map(cat => (
           <button
@@ -67,12 +61,10 @@ function Charts() {
         ))}
       </div>
 
-      {/* Chart Count */}
       <p className="text-center text-slate-500 mb-6">
         Showing {filteredCharts.length} charts
       </p>
 
-      {/* Grafik Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCharts.map(chart => (
           <div 
@@ -99,7 +91,6 @@ function Charts() {
         ))}
       </div>
 
-      {/* Modal - Large View */}
       {selectedImage && (
         <div 
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
@@ -129,36 +120,20 @@ function Charts() {
         </div>
       )}
 
-      {/* Seaborn Info Card */}
       <div className="mt-12 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700">
         <h2 className="text-xl font-bold mb-4 text-white">🐍 About Seaborn</h2>
-        <div className="grid md:grid-cols-2 gap-6 text-slate-300">
-          <div>
-            <h3 className="font-semibold text-blue-400 mb-2">Functions Used</h3>
-            <ul className="space-y-1 text-sm">
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.histplot()</code> - Histogram + KDE</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.boxplot()</code> - Box Plot (Quartiles)</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.violinplot()</code> - Violin Plot</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.heatmap()</code> - Correlation Heatmap</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.pairplot()</code> - Pair Plot (Scatter Matrix)</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.scatterplot()</code> - Scatter Plot</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.barplot()</code> - Bar Chart</li>
-              <li>• <code className="bg-slate-700 px-1 rounded">sns.lineplot()</code> - Line Chart</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-semibold text-green-400 mb-2">Statistical Analyses</h3>
-            <ul className="space-y-1 text-sm">
-              <li>• Price distribution and normality test (Q-Q Plot)</li>
-              <li>• Returns volatility and risk analysis</li>
-              <li>• Anomaly detection (Z-Score method)</li>
-              <li>• Correlation matrix calculation</li>
-              <li>• Rolling statistics (moving average)</li>
-              <li>• Risk-Return profile analysis</li>
-              <li>• Returns category distribution</li>
-              <li>• Comparative volatility analysis</li>
-            </ul>
-          </div>
+        <div className="text-slate-300">
+          <h3 className="font-semibold text-green-400 mb-2">Statistical Analyses</h3>
+          <ul className="space-y-1 text-sm">
+            <li>• Price distribution and normality test (Q-Q Plot)</li>
+            <li>• Returns volatility and risk analysis</li>
+            <li>• Anomaly detection (Z-Score method)</li>
+            <li>• Correlation matrix calculation</li>
+            <li>• Rolling statistics (moving average)</li>
+            <li>• Risk-Return profile analysis</li>
+            <li>• Returns category distribution</li>
+            <li>• Comparative volatility analysis</li>
+          </ul>
         </div>
       </div>
     </div>

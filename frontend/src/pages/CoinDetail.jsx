@@ -84,7 +84,6 @@ function CoinDetail() {
             )}
         </div>
 
-        {/* 1. MAIN PRICE CHART */}
         <div className="h-[450px] w-full bg-slate-950/40 rounded-[2rem] p-6 border border-white/5 shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
                 {(!chartData || chartData.length === 0) ? (
@@ -110,7 +109,6 @@ function CoinDetail() {
             </ResponsiveContainer>
         </div>
 
-        {/* 2. MOVED HERE: BENCHMARK / INDEX INFO */}
         {indexedSummary && (
           <div className="mt-6 p-6 bg-slate-900/40 rounded-3xl border border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-500">
             <div className="flex items-center gap-3">
@@ -121,7 +119,6 @@ function CoinDetail() {
           </div>
         )}
 
-        {/* 3. AI PREDICTION SECTION */}
         {forecastData && forecastData.length > 0 && (
           <div className="mt-10 bg-indigo-500/5 p-8 rounded-[2.5rem] border border-indigo-500/20 shadow-[0_0_50px_rgba(99,102,241,0.05)]">
             <div className="flex items-center gap-4 mb-8">

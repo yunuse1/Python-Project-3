@@ -14,7 +14,6 @@ if __name__ == '__main__':
     symbols = list(BINANCE_TO_ID.keys())
     logger.info(f'Fetching OHLC data for all {len(symbols)} popular coins (parallel)...')
     
-    # Fetch with 5 parallel workers
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(fetch_and_store_binance_ohlc, symbol, '1d', 90) for symbol in symbols]
         for idx, future in enumerate(concurrent.futures.as_completed(futures)):

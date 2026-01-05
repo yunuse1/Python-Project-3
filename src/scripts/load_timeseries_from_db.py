@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import datetime
 
-# ensure repo src on path
 ROOT_SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT_SRC not in sys.path:
     sys.path.insert(0, ROOT_SRC)
@@ -32,21 +31,18 @@ def load_series_from_db(coin_ids=None, save_csv=False, csv_prefix='ts_db'):
         if df.empty:
             print(f'No market data for {coin} in DB')
             continue
-        # ensure timestamp column exists
         if 'timestamp' not in df.columns:
             print(f'No timestamp column for {coin} — skipping')
             continue
         df = df.copy()
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df = df.set_index('timestamp').sort_index()
-        # ensure price column name
         price_col = None
         for candidate in ('price','close','price_usd'):
             if candidate in df.columns:
                 price_col = candidate
                 break
         if price_col is None:
-            # try numeric columns except coin_id
             cand_cols = [c for c in df.columns if c != 'coin_id']
             if cand_cols:
                 price_col = cand_cols[0]
