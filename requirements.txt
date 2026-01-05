@@ -1,5 +1,5 @@
 flask
-Flask-Cors
+flask-cors
 requests
 pandas
 numpy
@@ -9,3 +9,5 @@ seaborn
 scipy
 pymongo
 faker
+pytest
+mongomock

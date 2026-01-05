@@ -618,3 +618,54 @@ tailwindcss, vite
 
 Cryptocurrency Analysis Platform - Data Science Project
 
+---
+
+## 🧪 Testing
+
+### Test Structure
+```
+tests/
+├── test_api.py          # API endpoint integration tests (13 tests)
+├── test_db.py           # Database unit tests (9 tests)
+├── test_engine.py       # Analysis engine unit tests (14 tests)
+├── test_scripts_all.py  # Script logic unit tests (9 tests)
+└── __init__.py
+```
+
+### Running Tests
+
+**Run all tests:**
+```bash
+pytest tests/ -v
+```
+
+**Run specific test file:**
+```bash
+pytest tests/test_api.py -v
+pytest tests/test_engine.py -v
+```
+
+**Run with coverage report:**
+```bash
+pytest tests/ -v --cov=src --cov-report=html
+```
+
+**Run only failed tests:**
+```bash
+pytest tests/ --lf
+```
+
+### Test Categories
+
+| Category | File | Description |
+|----------|------|-------------|
+| Integration | `test_api.py` | Flask API endpoints, HTTP responses |
+| Unit | `test_db.py` | MongoDB CRUD operations with mongomock |
+| Unit | `test_engine.py` | Technical indicators (RSI, MACD, Bollinger) |
+| Unit | `test_scripts_all.py` | Data sync and script logic |
+
+### Requirements for Testing
+```bash
+pip install pytest mongomock pytest-cov
+```
+

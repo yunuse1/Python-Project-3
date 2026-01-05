@@ -1,19 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    mainFields: [], 
+    alias: {
+      stream: 'stream-browserify',
+    },
   },
   build: {
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+    rollupOptions: {
+      external: [],
+    },
   },
-  // Recharts sorunu için özel yama
   optimizeDeps: {
-    include: ['recharts'],
+    include: ['recharts', 'axios'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
 })
