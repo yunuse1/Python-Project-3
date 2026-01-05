@@ -42,3 +42,4 @@ for doc in details_col.find({}, {'_id':0}):
 after_count = all_coins_col.count_documents({})
 print(f'all_coins after: {after_count} (added {added})')
 print('Merge completed.')
+
