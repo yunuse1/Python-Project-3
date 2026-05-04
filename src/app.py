@@ -1,14 +1,24 @@
 from flask import Flask, jsonify, request
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 import pandas as pd
 import numpy as np
 import logging
+import os
+from dotenv import load_dotenv
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 from db import database_manager as db
 from analysis_engine import CryptoAnalysisEngine
 import time
+
+# Load environment variables from .env file
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -16,15 +26,136 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
+# --- SECURITY CONFIGURATION ---
+# Environment variables'dan configuration yükle
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-crypto-key-2026-swe210")
+jwt_expires_hours = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2"))
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=jwt_expires_hours)
+jwt = JWTManager(app)
+
+# Rate Limiting Configuration from environment variables
+rate_limit_per_day = os.getenv("RATE_LIMIT_PER_DAY", "500")
+rate_limit_per_hour = os.getenv("RATE_LIMIT_PER_HOUR", "100")
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[f"{rate_limit_per_day} per day", f"{rate_limit_per_hour} per hour"],
+    storage_uri="memory://"
+)
+
 analysis_engine = CryptoAnalysisEngine()
 
 _market_coins_cache = {'data': None, 'timestamp': 0}
 CACHE_TTL = 300
 
+# ==========================================
+# AUTHENTICATION & ACCESS CONTROL ENDPOINTS
+# ==========================================
+
+@app.route('/api/register', methods=['POST'])
+@limiter.limit("5 per minute")
+def register():
+    """Yeni kullanıcı kaydı. Şifreler hashlenerek kaydedilir."""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        secret_note = data.get('secret_note', '') 
+
+        if not username or not password:
+            return jsonify({"error": "Username and password are required"}), 400
+
+        if db.users_collection.find_one({"username": username}):
+            return jsonify({"error": "User already exists"}), 409
+
+        hashed_password = generate_password_hash(password)
+        encrypted_note = db.encrypt_sensitive_data(secret_note)
+
+        new_user = {
+            "username": username,
+            "password_hash": hashed_password,
+            "role": "User", 
+            "encrypted_wallet_note": encrypted_note,
+            "wallet_balance": 0.0,
+            "trades": [],
+            "last_active": datetime.now()
+        }
+
+        db.users_collection.insert_one(new_user)
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route('/api/login', methods=['POST'])
+@limiter.limit("10 per minute")
+def login():
+    """Kullanıcı girişi ve JWT Token üretimi."""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+
+        user = db.users_collection.find_one({"username": username})
+
+        if user and check_password_hash(user.get("password_hash", ""), password):
+            additional_claims = {"role": user.get("role", "User")}
+            access_token = create_access_token(identity=username, additional_claims=additional_claims)
+            
+            return jsonify({
+                "message": "Login successful",
+                "access_token": access_token,
+                "role": user.get("role")
+            }), 200
+        else:
+            return jsonify({"error": "Invalid username or password"}), 401
+    except Exception as e:
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route('/api/user/profile', methods=['GET'])
+@jwt_required()
+def get_user_profile():
+    """Kullanıcının kendi verilerini ve çözülmüş (Decrypted) hassas verisini döndürür."""
+    try:
+        current_user = get_jwt_identity()
+        user_data = db.users_collection.find_one({"username": current_user}, {"_id": 0, "password_hash": 0})
+        
+        if not user_data:
+            return jsonify({"error": "User not found"}), 404
+
+        encrypted_note = user_data.get("encrypted_wallet_note", "")
+        if encrypted_note:
+            user_data["decrypted_wallet_note"] = db.decrypt_sensitive_data(encrypted_note)
+
+        return jsonify(user_data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/dashboard', methods=['GET'])
+@jwt_required()
+def admin_dashboard():
+    """Role-Based Access Control (RBAC): Sadece Admin erişebilir."""
+    try:
+        claims = get_jwt()
+        if claims.get("role") != "Admin":
+            return jsonify({"error": "Unauthorized Access. Admin role required."}), 403
+
+        users = list(db.users_collection.find({}, {"_id": 0, "password_hash": 0}))
+        return jsonify({
+            "message": "Welcome to the Admin Dashboard",
+            "total_users": len(users),
+            "users_data": users
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# PUBLIC CRYPTO DATA ENDPOINTS 
+# ==========================================
 
 @app.route('/api/all-coins', methods=['GET'])
 def get_all_coins():
-    """Returns detailed data for all coins from MongoDB."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["all_coins_details"]
@@ -37,7 +168,6 @@ def get_all_coins():
 
 @app.route('/api/popular-coins', methods=['GET'])
 def get_popular_coins():
-    """Returns summary data for popular coins from MongoDB."""
     try:
         client = db.client
         collection = client["crypto_project_db"]["popular_coins"]
@@ -49,18 +179,10 @@ def get_popular_coins():
 
 @app.route('/')
 def home():
-    """Health check route."""
-    return "Crypto Analysis API is running! 🚀"
+    return "Secure Crypto Analysis API is running! 🚀"
 
 @app.route('/api/market/<coin_id>', methods=['GET'])
 def get_coin_data(coin_id):
-    """
-    Fetches historical market data for a specific coin from MongoDB.
-    Args:
-        coin_id (str): The ID of the cryptocurrency (e.g., 'bitcoin').
-    Returns:
-        JSON: List of price data records.
-    """
     try:
         df = db.get_market_data(coin_id)
         
@@ -110,17 +232,15 @@ def get_coin_data(coin_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/users', methods=['GET'])
+@jwt_required()
 def get_users():
-    """
-    Fetches all user data and their trade history from MongoDB.
-    Returns:
-        JSON: List of users and their portfolios.
-    """
     try:
+        claims = get_jwt()
+        if claims.get("role") != "Admin":
+            return jsonify({"error": "Unauthorized Access"}), 403
+            
         users = list(db.users_collection.find({}, {"_id": 0}))
-        
         return jsonify(users)
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -164,10 +284,6 @@ COIN_SYMBOLS = {
 }
 
 def fetch_market_coins_list():
-    """
-    Returns list of coins that have market_data entries.
-    This is used to power the frontend market page.
-    """
     try:
         client = db.client
         market_coll = client["crypto_project_db"]["market_data"]
@@ -221,10 +337,8 @@ def fetch_market_coins_list():
         logger.error(f"fetch_market_coins_list error: {e}")
         return []
 
-
 @app.route('/api/market-coins', methods=['GET'])
 def get_market_coins():
-    """Endpoint that returns only coins which have market data available. Uses caching."""
     global _market_coins_cache
     try:
         now = time.time()
@@ -240,12 +354,6 @@ def get_market_coins():
 
 @app.route('/api/market/indexed', methods=['GET'])
 def get_indexed_series():
-    """
-    Returns indexed series (base = 100 at base_date) and percent-change summaries for given coins.
-    Query params:
-      - coins: comma-separated list of coin ids (e.g. bitcoin,ethereum)
-      - base_date: optional ISO or RFC date string; if omitted defaults to 30 days before latest available point per coin
-    """
     try:
         coins_param = request.args.get('coins', '')
         if not coins_param:
@@ -337,13 +445,8 @@ def get_indexed_series():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/api/analysis/<coin_id>', methods=['GET'])
 def get_coin_analysis(coin_id):
-    """
-    Returns detailed technical analysis and risk metrics for a coin.
-    RSI, MACD, Bollinger Bands, Volatility, Sharpe Ratio, Trend analysis
-    """
     try:
         df = db.get_market_data(coin_id)
         
@@ -417,12 +520,16 @@ def get_coin_analysis(coin_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/user-analysis/<username>', methods=['GET'])
+@jwt_required()
 def get_user_performance(username):
-    """
-    Analyzes a specific user's portfolio performance
-    with current market prices.
-    """
     try:
+        current_user = get_jwt_identity()
+        claims = get_jwt()
+        
+        # Sadece Admin başkasının profiline bakabilir, kullanıcı sadece kendine bakabilir.
+        if current_user != username and claims.get("role") != "Admin":
+            return jsonify({"error": "Unauthorized Access"}), 403
+
         user = db.users_collection.find_one({"username": username}, {"_id": 0})
         if not user:
             return jsonify({"error": "User not found"}), 404
@@ -447,10 +554,6 @@ def get_user_performance(username):
 
 @app.route('/api/correlation', methods=['GET'])
 def get_correlation():
-    """
-    Returns correlation matrix for multiple coins.
-    Query params: coins=bitcoin,ethereum,solana
-    """
     try:
         coins_param = request.args.get('coins', 'bitcoin,ethereum,solana')
         coins = [c.strip() for c in coins_param.split(',') if c.strip()]
@@ -490,13 +593,8 @@ def get_correlation():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/api/anomalies/<coin_id>', methods=['GET'])
 def get_coin_anomalies(coin_id):
-    """
-    Returns anomaly detection and summary statistics for a coin.
-    Uses Z-Score, IQR and Rolling window methods.
-    """
     try:
         df = db.get_market_data(coin_id)
         
@@ -599,10 +697,6 @@ def get_exchange_overview():
 
 @app.route('/api/report/<coin_id>', methods=['GET'])
 def get_scientific_report(coin_id):
-    """
-    Returns comprehensive scientific report for a coin.
-    Descriptive statistics, returns analysis, risk analysis, anomaly detection
-    """
     try:
         df = db.get_market_data(coin_id)
         
@@ -653,7 +747,6 @@ def get_scientific_report(coin_id):
     except Exception as e:
         logger.error(f"Error generating report: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     try:

@@ -1,5 +1,5 @@
 """
-Crypto Analysis Engine - Technical analysis and risk metrics calculation module
+Crypto Analysis Engine - Teknik analiz ve risk metrikleri hesaplama modülü
 """
 import pandas as pd
 import numpy as np
@@ -7,18 +7,18 @@ from sklearn.linear_model import LinearRegression
 
 class CryptoAnalysisEngine:
     """
-    Module for calculating technical analysis and risk metrics for cryptocurrency data.
+    Kripto para verileri için teknik analiz ve risk metrikleri hesaplayan ana modül.
     """
     
     def calculate_sma(self, df, column='price', periods=[7, 14, 30]):
-        """Simple Moving Average"""
+        """Basit Hareketli Ortalama (Simple Moving Average) Hesaplaması"""
         df = df.copy()
         for period in periods:
             df[f'sma_{period}'] = df[column].rolling(window=period).mean()
         return df
 
     def calculate_ema(self, df, column='price', periods=[7, 14, 30]):
-        """Exponential Moving Average"""
+        """Üstel Hareketli Ortalama (Exponential Moving Average) Hesaplaması"""
         df = df.copy()
         for period in periods:
             df[f'ema_{period}'] = df[column].ewm(span=period, adjust=False).mean()
@@ -26,9 +26,9 @@ class CryptoAnalysisEngine:
 
     def calculate_rsi(self, df, column='price', period=14):
         """
-        Relative Strength Index
-        RSI > 70: Overbought
-        RSI < 30: Oversold
+        Göreceli Güç Endeksi (Relative Strength Index)
+        RSI > 70: Aşırı Alım (Overbought)
+        RSI < 30: Aşırı Satım (Oversold)
         """
         df = df.copy()
         delta = df[column].diff()
@@ -46,8 +46,8 @@ class CryptoAnalysisEngine:
 
     def calculate_macd(self, df, column='price', fast=12, slow=26, signal=9):
         """
-        MACD (Moving Average Convergence Divergence)
-        Trend following indicator
+        MACD (Hareketli Ortalama Yakınsama/Iraksama)
+        Trend takip eden gösterge
         """
         df = df.copy()
         ema_fast = df[column].ewm(span=fast, adjust=False).mean()
@@ -61,8 +61,8 @@ class CryptoAnalysisEngine:
 
     def calculate_bollinger_bands(self, df, column='price', period=20, std_dev=2):
         """
-        Bollinger Bands
-        Shows volatility and price levels
+        Bollinger Bantları
+        Volatiliteyi ve potansiyel fiyat seviyelerini gösterir
         """
         df = df.copy()
         sma = df[column].rolling(window=period).mean()
@@ -71,14 +71,12 @@ class CryptoAnalysisEngine:
         df['bb_middle'] = sma
         df['bb_upper'] = sma + (std * std_dev)
         df['bb_lower'] = sma - (std * std_dev)
-        df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle'] * 100
+        df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / (df['bb_middle'] + 1e-10) * 100
         
         return df
     
     def calculate_volatility(self, df, column='price', periods=[7, 30]):
-        """
-        Volatility calculation (daily return standard deviation)
-        """
+        """Volatilite hesaplaması (Günlük getirinin standart sapması)"""
         df = df.copy()
         df['daily_return'] = df[column].pct_change()
         
@@ -88,13 +86,10 @@ class CryptoAnalysisEngine:
         return df
 
     def calculate_max_drawdown(self, df, column='price'):
-        """
-        Maximum Drawdown - Largest drop from peak
-        Critical metric for risk measurement
-        """
+        """Maksimum Düşüş (Maximum Drawdown) - Zirveden en büyük düşüş"""
         df = df.copy()
         rolling_max = df[column].expanding().max()
-        drawdown = (df[column] - rolling_max) / rolling_max * 100
+        drawdown = (df[column] - rolling_max) / (rolling_max + 1e-10) * 100
         
         df['drawdown'] = drawdown
         df['max_drawdown'] = drawdown.expanding().min()
@@ -102,10 +97,7 @@ class CryptoAnalysisEngine:
         return df
 
     def calculate_sharpe_ratio(self, df, column='price', risk_free_rate=0.02, period=30):
-        """
-        Sharpe Ratio - Risk-adjusted return
-        Higher value = good risk/return ratio
-        """
+        """Sharpe Oranı - Riske göre ayarlanmış getiri"""
         df = df.copy()
         df['daily_return'] = df[column].pct_change()
         
@@ -123,8 +115,7 @@ class CryptoAnalysisEngine:
     def calculate_beta(self, coin_df, benchmark_df, column='price', period=30):
         """
         Beta - Piyasa (benchmark) ile korelasyon/hassasiyet
-        Beta > 1: Piyasadan daha volatil
-        Beta < 1: Piyasadan daha az volatil
+        Beta > 1: Piyasadan daha volatil, Beta < 1: Piyasadan daha az volatil
         """
         coin_returns = coin_df[column].pct_change()
         bench_returns = benchmark_df[column].pct_change()
@@ -140,10 +131,7 @@ class CryptoAnalysisEngine:
         return beta
     
     def detect_trend(self, df, column='price', short_period=7, long_period=30):
-        """
-        Trend detection
-        Returns: 'bullish', 'bearish', 'neutral'
-        """
+        """Trend tespiti ('bullish', 'bearish', 'neutral')"""
         df = df.copy()
         df['sma_short'] = df[column].rolling(window=short_period).mean()
         df['sma_long'] = df[column].rolling(window=long_period).mean()
@@ -162,9 +150,7 @@ class CryptoAnalysisEngine:
         return df
 
     def calculate_support_resistance(self, df, column='price', period=30):
-        """
-        Calculate support and resistance levels
-        """
+        """Destek (Support) ve Direnç (Resistance) seviyelerini hesaplar"""
         recent = df[column].tail(period)
         
         support = recent.min()
@@ -180,9 +166,10 @@ class CryptoAnalysisEngine:
         }
     
     def get_full_analysis(self, df, column='price'):
-        """
-        Combine all analyses and return summary
-        """
+        """Tüm analizleri birleştirir ve özet tablo döndürür"""
+        if df is None or df.empty or column not in df.columns:
+            return {"error": "Invalid or missing dataframe"}
+
         df = df.copy()
         df = self.calculate_sma(df, column, [7, 30])
         df = self.calculate_ema(df, column, [7, 30])
@@ -256,10 +243,7 @@ class CryptoAnalysisEngine:
         }
 
     def calculate_correlation_matrix(self, coin_dataframes):
-        """
-        Calculate correlation matrix for multiple coins
-        coin_dataframes: {'bitcoin': df1, 'ethereum': df2, ...}
-        """
+        """Çoklu coinler için korelasyon matrisi hesaplar"""
         returns = {}
         for coin_name, df in coin_dataframes.items():
             if 'price' in df.columns:
@@ -271,10 +255,7 @@ class CryptoAnalysisEngine:
         return correlation_matrix.to_dict()
     
     def detect_anomalies_zscore(self, df, column='price', threshold=3.0):
-        """
-        Z-Score based anomaly detection
-        threshold: Values beyond this many standard deviations are anomalies
-        """
+        """Z-Score tabanlı anomali tespiti"""
         df = df.copy()
         mean = df[column].mean()
         std = df[column].std()
@@ -285,10 +266,7 @@ class CryptoAnalysisEngine:
         return df
     
     def detect_anomalies_iqr(self, df, column='price', multiplier=1.5):
-        """
-        IQR (Interquartile Range) based anomaly detection
-        More robust method - not sensitive to outliers
-        """
+        """IQR (Çeyrekler Açıklığı) tabanlı anomali tespiti"""
         df = df.copy()
         Q1 = df[column].quantile(0.25)
         Q3 = df[column].quantile(0.75)
@@ -304,10 +282,7 @@ class CryptoAnalysisEngine:
         return df
     
     def detect_anomalies_rolling(self, df, column='price', window=20, threshold=2.5):
-        """
-        Rolling window based anomaly detection
-        Takes time-dependent trends into account
-        """
+        """Hareketli pencere (Rolling Window) tabanlı anomali tespiti"""
         df = df.copy()
         rolling_mean = df[column].rolling(window=window).mean()
         rolling_std = df[column].rolling(window=window).std()
@@ -318,10 +293,7 @@ class CryptoAnalysisEngine:
         return df
     
     def detect_price_spikes(self, df, column='price', pct_threshold=0.10):
-        """
-        Detect sudden price changes
-        pct_threshold: Percentage change threshold (0.10 = 10%)
-        """
+        """Ani fiyat değişimlerini (Spike) tespit eder"""
         df = df.copy()
         df['pct_change'] = df[column].pct_change()
         df['is_spike'] = abs(df['pct_change']) > pct_threshold
@@ -332,9 +304,7 @@ class CryptoAnalysisEngine:
         return df
     
     def get_anomaly_summary(self, df, column='price'):
-        """
-        Combine all anomaly detection methods and return summary
-        """
+        """Tüm anomali tespiti yöntemlerini birleştirir ve özet döndürür"""
         df = df.copy()
         df = self.detect_anomalies_zscore(df, column)
         df = self.detect_anomalies_iqr(df, column)
@@ -380,9 +350,7 @@ class CryptoAnalysisEngine:
         }
     
     def calculate_descriptive_statistics(self, df, column='price'):
-        """
-        Comprehensive descriptive statistics
-        """
+        """Kapsamlı tanımlayıcı istatistikleri (Descriptive Statistics) hesaplar"""
         data = df[column].dropna()
         
         return {
@@ -403,9 +371,7 @@ class CryptoAnalysisEngine:
         }
     
     def calculate_returns_analysis(self, df, column='price'):
-        """
-        Returns analysis - Daily, weekly, monthly
-        """
+        """Getiri analizi - Günlük, haftalık, aylık"""
         df = df.copy()
         df['daily_return'] = df[column].pct_change()
         df['log_return'] = np.log(df[column] / df[column].shift(1))
@@ -428,9 +394,7 @@ class CryptoAnalysisEngine:
         }
     
     def calculate_risk_analysis(self, df, column='price', confidence_level=0.95):
-        """
-        Risk analizi - VaR, CVaR, Maximum Drawdown
-        """
+        """Risk analizi - VaR, CVaR, Maximum Drawdown"""
         df = df.copy()
         df['daily_return'] = df[column].pct_change()
         returns = df['daily_return'].dropna()
@@ -459,9 +423,7 @@ class CryptoAnalysisEngine:
         }
     
     def generate_scientific_report(self, df, column='price', coin_name='Unknown'):
-        """
-        Generate comprehensive scientific report
-        """
+        """Kapsamlı bilimsel rapor (Scientific Report) oluşturur"""
         df = df.copy()
         descriptive = self.calculate_descriptive_statistics(df, column)
         returns = self.calculate_returns_analysis(df, column)
@@ -497,8 +459,8 @@ class CryptoAnalysisEngine:
     
     def analyze_user_performance(self, user_data, current_market_prices):
         """
-        Analyzes user portfolio against market data for performance analysis.
-        current_market_prices: expects a dictionary like {'bitcoin': 64000, 'ethereum': 3500, ...}
+        Kullanıcı portföyünü mevcut piyasa fiyatlarına göre analiz eder.
+        current_market_prices: {'bitcoin': 64000, 'ethereum': 3500, ...} şeklinde sözlük bekler.
         """
         portfolio_report = []
         total_pnl = 0
@@ -531,9 +493,7 @@ class CryptoAnalysisEngine:
         }
     
     def calculate_exchange_overview(self, all_users, current_market_prices):
-        """
-        Analyzes all exchange data.
-        """
+        """Borsa (Exchange) verilerinin genel bir analizini çıkarır."""
         total_liquidity = 0
         user_performances = []
         coin_counts = {}
@@ -569,8 +529,9 @@ class CryptoAnalysisEngine:
             "most_popular_coin": popular.upper(),
             "total_investors": len(all_users)
         }
+        
     def predict_future_price(self, df):
-        """Predicts 7 days ahead using Linear Regression."""
+        """Lineer Regresyon (Linear Regression) kullanarak 7 gün sonrası için fiyat tahmini yapar."""
         from sklearn.linear_model import LinearRegression
         import numpy as np
         

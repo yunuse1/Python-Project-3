@@ -1,3 +1,4 @@
+# Temel Web ve Veri Kütüphaneleri (Original Libraries)
 flask
 flask-cors
 requests
@@ -11,3 +12,14 @@ pymongo
 faker
 pytest
 mongomock
+
+# --- GÜVENLİK KÜTÜPHANELERİ (SECURITY REQUIREMENTS) ---
+# Kimlik doğrulama ve Rol Bazlı Erişim (Authentication & RBAC) için
+Flask-JWT-Extended
+Werkzeug
+# Kaba kuvvet (Brute Force) saldırılarını engellemek için
+Flask-Limiter
+# Veri şifreleme (Encryption - Fernet/AES) için
+cryptography
+# Environment Variables Management
+python-dotenv

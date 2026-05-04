@@ -19,9 +19,19 @@ function InvestorAnalysis() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/api/users`)
+    const token = localStorage.getItem('token');
+    
+    // api/users da korumalı, bu yüzden token ekliyoruz
+    axios.get(`${API_BASE}/api/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
       .then(res => setUsers(res.data))
-      .catch(err => console.error("User list error:", err));
+      .catch(err => {
+          console.error("User list error:", err);
+          if (err.response && err.response.status === 403) {
+             setError("You don't have permission to view the user list. Admin access required.");
+          }
+      });
 
     axios.get(`${API_BASE}/api/exchange-overview`)
       .then(res => setOverview(res.data))
@@ -31,21 +41,43 @@ function InvestorAnalysis() {
   useEffect(() => {
     if (selectedUser) {
       setLoading(true);
-      axios.get(`${API_BASE}/api/user-analysis/${selectedUser}`)
+      setError(null);
+      const token = localStorage.getItem('token');
+      axios.get(`${API_BASE}/api/user-analysis/${selectedUser}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
         .then(res => {
           setAnalysis(res.data);
           setLoading(false);
         })
-        .catch(() => setError('Failed to load data.'));
+        .catch((err) => {
+           setError(err.response?.data?.error || 'Failed to load data. You may only view your own profile.');
+           setLoading(false);
+           setAnalysis(null);
+        });
     }
   }, [selectedUser]);
 
   useEffect(() => {
-    if (userA) axios.get(`${API_BASE}/api/user-analysis/${userA}`).then(res => setAnalysisA(res.data));
+    const token = localStorage.getItem('token');
+    if (userA) {
+       axios.get(`${API_BASE}/api/user-analysis/${userA}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+       })
+       .then(res => setAnalysisA(res.data))
+       .catch(() => setAnalysisA(null));
+    }
   }, [userA]);
 
   useEffect(() => {
-    if (userB) axios.get(`${API_BASE}/api/user-analysis/${userB}`).then(res => setAnalysisB(res.data));
+    const token = localStorage.getItem('token');
+    if (userB) {
+        axios.get(`${API_BASE}/api/user-analysis/${userB}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => setAnalysisB(res.data))
+        .catch(() => setAnalysisB(null));
+    }
   }, [userB]);
 
   return (
@@ -70,6 +102,12 @@ function InvestorAnalysis() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/50 border border-red-500 text-red-300 p-4 rounded-xl text-center font-bold mb-8 mx-auto max-w-2xl">
+          {error}
+        </div>
+      )}
 
       {activeTab === 'single' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

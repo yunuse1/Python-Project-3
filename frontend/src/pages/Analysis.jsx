@@ -21,7 +21,12 @@ function Analysis() {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get(`${API_BASE}/api/analysis/${coin}`);
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${API_BASE}/api/analysis/${coin}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         setAnalysis(res.data);
       } catch (err) {
         setError(err.response?.data?.error || 'Analysis could not be loaded');
